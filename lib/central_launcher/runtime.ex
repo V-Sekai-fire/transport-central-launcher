@@ -45,7 +45,15 @@ defmodule CentralLauncher.Runtime do
   # The harness dlopens iceoryx2 by bare name, which finds nothing inside a
   # self-extracted release. Name the staged file outright.
   def env("libgodot_host") do
-    [{~c"WEFT_ICEORYX2_PATH", to_charlist(Path.join(priv(), "libiceoryx2_ffi_c.dylib"))}]
+    [{~c"WEFT_ICEORYX2_PATH", to_charlist(Path.join(priv(), iceoryx2()))}]
+  end
+
+  defp iceoryx2 do
+    case :os.type() do
+      {:unix, :darwin} -> "libiceoryx2_ffi_c.dylib"
+      {:win32, _} -> "iceoryx2_ffi_c.dll"
+      _ -> "libiceoryx2_ffi_c.so"
+    end
   end
 
   def env(_name), do: []

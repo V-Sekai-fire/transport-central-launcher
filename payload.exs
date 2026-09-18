@@ -5,6 +5,67 @@
 # Each entry pins a version and a digest, so a build either produces the payload
 # this file describes or fails.
 %{
+  "linux_arm64" => [
+    %{
+      name: "versitygw",
+      version: "1.8.0",
+      url:
+        "https://github.com/versity/versitygw/releases/download/v1.8.0/versitygw_v1.8.0_Linux_arm64.tar.gz",
+      extract: "versitygw_v1.8.0_Linux_arm64/versitygw",
+      sha256: "from-release-asset"
+    },
+    %{
+      name: "bao",
+      version: "2.6.2",
+      url:
+        "https://github.com/openbao/openbao/releases/download/v2.6.2/openbao_2.6.2_linux_arm64.tar.gz",
+      extract: "bao",
+      sha256: "from-release-asset"
+    },
+    %{
+      name: "fdbserver",
+      version: "7.3.76",
+      url: "https://github.com/apple/foundationdb/releases/download/7.3.76/fdbserver.aarch64",
+      extract: "fdbserver.aarch64",
+      sha256: "from-release-asset"
+    },
+    %{
+      name: "libfdb_c",
+      version: "7.3.76",
+      url: "https://github.com/apple/foundationdb/releases/download/7.3.76/libfdb_c.aarch64.so",
+      extract: "libfdb_c.aarch64.so",
+      sha256: "from-release-asset"
+    },
+    %{
+      name: "libgodot",
+      version: "4.8.dev.bc391afc4",
+      url: "https://github.com/V-Sekai-fire/entities-libgodot",
+      extract: "bin/libgodot.linuxbsd.template_release.arm64.so",
+      sha256: "built-locally"
+    },
+    %{
+      name: "libiceoryx2_ffi_c.so",
+      version: "0.9.3",
+      url: "https://github.com/V-Sekai-fire/interactor-elixir-libgodot",
+      extract: "libiceoryx2_ffi_c.so",
+      sha256: "built-locally"
+    },
+    %{
+      name: "libgodot_host",
+      version: "4.8.dev.bc391afc4",
+      url: "https://github.com/V-Sekai-fire/transport-elixir-libgodot-connector",
+      extract: "samples/libgodot_host/host.cpp",
+      sha256: "built-locally"
+    },
+    %{
+      name: "desync",
+      version: "0.9.6",
+      url:
+        "https://github.com/folbricht/desync/releases/download/v0.9.6/desync_0.9.6_linux_arm64.tar.gz",
+      extract: "desync",
+      sha256: "from-release-asset"
+    }
+  ],
   "macos_arm64" => [
     %{
       name: "versitygw",

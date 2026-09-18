@@ -10,6 +10,7 @@ defmodule CentralLauncher.MixProject do
   @erts_base "https://beam-machine-universal.b-cdn.net/OTP-#{@otp}"
   @erts_macos "#{@erts_base}/macos/universal/otp_#{@otp}_macos_universal.tar.gz"
   @erts_linux "#{@erts_base}/linux/x86_64/any/otp_#{@otp}_linux_any_x86_64.tar.gz"
+  @erts_linux_arm "#{@erts_base}/linux/aarch64/any/otp_#{@otp}_linux_any_aarch64.tar.gz"
   @erts_windows "https://github.com/erlang/otp/releases/download/OTP-#{@otp}/otp_win64_#{@otp}.exe"
 
   def project do
@@ -28,7 +29,13 @@ defmodule CentralLauncher.MixProject do
   end
 
   defp deps do
-    [{:burrito, "~> 1.6", only: [:prod, :dev], runtime: false}]
+    [
+      {:burrito,
+       github: "V-Sekai-fire/service-burrito",
+       branch: "head/musl-for-custom-erts",
+       only: [:prod, :dev],
+       runtime: false}
+    ]
   end
 
   # Native per target. libgodot is glibc-entangled through use_sowrap, so the
@@ -42,6 +49,7 @@ defmodule CentralLauncher.MixProject do
           targets: [
             macos_arm64: [os: :darwin, cpu: :aarch64, custom_erts: @erts_macos],
             linux_x86_64: [os: :linux, cpu: :x86_64, custom_erts: @erts_linux],
+            linux_arm64: [os: :linux, cpu: :aarch64, custom_erts: @erts_linux_arm],
             windows_amd64: [os: :windows, cpu: :x86_64, custom_erts: @erts_windows]
           ],
           skip_nifs: true
