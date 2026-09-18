@@ -42,7 +42,7 @@ defmodule CentralLauncher.CLI do
 
     case started do
       {:error, reason} -> {:error, reason}
-      names -> {:ok, "launched #{mode}: #{Enum.join(Enum.reverse(names), ", ")}"}
+      names -> {:supervise, "launched #{mode}: #{Enum.join(Enum.reverse(names), ", ")}"}
     end
   end
 
@@ -63,6 +63,13 @@ defmodule CentralLauncher.CLI do
   defp report({:ok, message}) do
     IO.puts(to_string(message))
     System.halt(0)
+  end
+
+  # launch does not halt: the children are supervised by this VM, so exiting
+  # would take them with it.
+  defp report({:supervise, message}) do
+    IO.puts(to_string(message))
+    Process.sleep(:infinity)
   end
 
   defp report({:error, reason}) do

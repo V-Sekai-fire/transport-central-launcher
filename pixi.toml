@@ -8,4 +8,4 @@ version = "0.1.0"
 [tasks]
 
 [dependencies]
-zig = "==0.15.2"
+zig = "==0.16.0"
