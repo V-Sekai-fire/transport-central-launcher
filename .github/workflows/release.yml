@@ -1,0 +1,57 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux_x86_64
+            runs_on: ubuntu-22.04
+          - target: macos_arm64
+            runs_on: macos-15
+          - target: windows_amd64
+            runs_on: windows-2022
+    runs-on: ${{ matrix.runs_on }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.19"
+          otp-version: "28.3"
+
+      # Burrito compresses its payload with xz, and the Windows ERTS can only be
+      # laid out on Windows, which is why each target builds on its own runner.
+      - name: Install xz
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            Linux) sudo apt-get update && sudo apt-get install -y xz-utils ;;
+            macOS) brew install xz ;;
+            Windows) echo "C:\msys64\usr\bin" >> $GITHUB_PATH ;;
+          esac
+
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: deps-${{ runner.os }}-${{ hashFiles('mix.lock') }}
+
+      - name: Build
+        shell: bash
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+          MIX_ENV: prod
+        run: |
+          mix deps.get
+          mix release central_launcher --overwrite
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: central-launcher-${{ matrix.target }}
+          path: burrito_out/*
