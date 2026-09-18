@@ -7,7 +7,8 @@ defmodule CentralLauncher.CLI do
 
   defp run(["install" | _]), do: install()
   defp run(["launch" | _]), do: launch()
-  defp run(["update", index, dest, seed]), do: CentralLauncher.Update.fetch(index, dest, seed)
+  defp run(["update", index, dest, seed, store]),
+    do: CentralLauncher.Update.fetch(index, dest, seed, store)
   defp run(["version" | _]), do: {:ok, Application.spec(:central_launcher, :vsn)}
   defp run(_argv), do: {:ok, usage()}
 
@@ -54,7 +55,7 @@ defmodule CentralLauncher.CLI do
   end
 
   defp usage do
-    "central-launcher install | launch | update <index> <dest> <seed> | version"
+    "central-launcher install | launch | update <index> <dest> <seed> <store> | version"
   end
 
   # Halting is load-bearing: Burrito boots with `-s elixir start_cli`, which
