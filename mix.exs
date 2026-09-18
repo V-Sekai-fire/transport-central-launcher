@@ -50,33 +50,27 @@ defmodule CentralLauncher.MixProject do
     ]
   end
 
-  # A missing payload fails the build. fetch_env! and cp! are the failure: a
-  # release that ships without its children still starts, and then cannot do
+  # A missing payload fails the build: fetch_env! and cp! are the failure, since
+  # a release that ships without its children still starts and then cannot do
   # the one thing it exists for.
   defp stage_payload(%Mix.Release{} = release) do
     priv = Path.join(release.path, "lib/central_launcher-#{release.version}/priv")
     File.mkdir_p!(priv)
 
-    for {var, name} <- payload() do
-      File.cp!(System.fetch_env!(var), Path.join(priv, name))
+    for %{name: name} <- payload() do
+      File.cp!(Path.join(payload_dir(), name), Path.join(priv, name))
     end
 
     release
   end
 
-  # Every child the binary carries. fdbserver is standalone-only; the rest are
-  # needed in both modes, so all of them must be staged for a release to build.
+  # Declared in payload.exs, not in the environment: a variable is invisible to
+  # the editor and gone the next time somebody builds.
   defp payload do
-    [
-      {"LAUNCHER_LIBGODOT_HOST", "libgodot_host"},
-      {"LAUNCHER_LIBGODOT", "libgodot"},
-      {"LAUNCHER_ICEORYX2", "iceoryx2"},
-      {"LAUNCHER_WEFT_SQL", "weft_sql"},
-      {"LAUNCHER_LIBFDB_C", "libfdb_c"},
-      {"LAUNCHER_FDBSERVER", "fdbserver"},
-      {"LAUNCHER_BAO", "bao"},
-      {"LAUNCHER_VERSITYGW", "versitygw"},
-      {"LAUNCHER_DESYNC", "desync"}
-    ]
+    "payload.exs" |> Code.eval_file() |> elem(0) |> Map.fetch!(target()) 
   end
+
+  defp payload_dir, do: Path.join("payload", target())
+
+  defp target, do: System.get_env("BURRITO_TARGET") || "macos_arm64"
 end

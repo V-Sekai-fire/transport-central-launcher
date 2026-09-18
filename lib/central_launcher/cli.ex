@@ -36,20 +36,58 @@ defmodule CentralLauncher.CLI do
         spec = child_spec(name)
 
         case Supervisor.start_child(CentralLauncher.Supervisor, spec) do
-          {:ok, _pid} -> {:cont, [name | acc]}
+          {:ok, pid} -> {:cont, [{name, pid} | acc]}
           {:error, reason} -> {:halt, {:error, {name, reason}}}
         end
       end)
 
     case started do
       {:error, reason} -> {:error, reason}
-      names -> {:supervise, "launched #{mode}: #{Enum.join(Enum.reverse(names), ", ")}"}
+      started -> confirm(Enum.reverse(started), mode)
     end
+  end
+
+  # `start_child` returns `{:ok, pid}` the moment the port opens, which a child
+  # that exits immediately also satisfies. Comparing the pid rather than mere
+  # liveness is what separates a running child from one crash-looping under a
+  # supervisor that keeps handing back a fresh pid.
+  @settle_ms 500
+  @settle_polls 24
+
+  defp confirm(started, mode) do
+    bad = watch(started, @settle_polls, [])
+
+    case bad do
+      [] -> {:supervise, "launched #{mode}: #{names(started)}"}
+      bad -> {:error, {:children_not_running, Enum.uniq(bad)}}
+    end
+  end
+
+  # A single settle-then-look is a proxy: a crash-looping child is alive
+  # between restarts and reads as running. Require the same pid across the
+  # whole window instead, so a restart anywhere in it is a failure.
+  defp watch(_started, 0, bad), do: bad
+
+  defp watch(started, polls, bad) do
+    Process.sleep(@settle_ms)
+    now = for {name, pid} <- started, not holding?(name, pid), do: name
+    watch(started, polls - 1, bad ++ now)
+  end
+
+  defp names(started), do: started |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")
+
+  defp holding?(name, pid) do
+    Process.whereis(:"child_#{name}") == pid and Process.alive?(pid)
   end
 
   defp child_spec(name) do
     Supervisor.child_spec(
-      {CentralLauncher.PrivBinary, app: :central_launcher, binary: name, name: :"child_#{name}"},
+      {CentralLauncher.PrivBinary,
+       app: :central_launcher,
+       binary: name,
+       name: :"child_#{name}",
+       args: CentralLauncher.Runtime.args(name),
+       env: CentralLauncher.Runtime.env(name)},
       id: name
     )
   end
@@ -70,11 +108,20 @@ defmodule CentralLauncher.CLI do
   # would take them with it.
   defp report({:supervise, message}) do
     IO.puts(to_string(message))
+    CentralLauncher.Signal.install()
     Process.sleep(:infinity)
   end
 
+  # Children already started before the failure are torn down first: halting
+  # straight away leaves them running with no launcher to supervise them.
   defp report({:error, reason}) do
     IO.puts(:stderr, "central-launcher: #{inspect(reason)}")
+
+    case Process.whereis(CentralLauncher.Supervisor) do
+      pid when is_pid(pid) -> Supervisor.stop(CentralLauncher.Supervisor, :shutdown)
+      _ -> :ok
+    end
+
     System.halt(1)
   end
 end

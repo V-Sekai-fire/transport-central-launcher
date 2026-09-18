@@ -6,3 +6,4 @@ burrito_out/
 .pixi/*
 !.pixi/config.toml
 .pixi/
+payload/

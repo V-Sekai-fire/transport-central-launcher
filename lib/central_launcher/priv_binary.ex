@@ -37,14 +37,18 @@ defmodule CentralLauncher.PrivBinary do
     app = Keyword.fetch!(opts, :app)
     name = Keyword.fetch!(opts, :binary)
 
+    # Without trapping, `terminate/2` never runs and every staged child
+    # outlives the launcher as an orphan.
+    Process.flag(:trap_exit, true)
+
     case path(app, name) do
-      {:ok, exe} -> {:ok, open(exe, Keyword.get(opts, :args, []))}
+      {:ok, exe} -> {:ok, open(exe, Keyword.get(opts, :args, []), Keyword.get(opts, :env, []))}
       {:error, reason} -> {:stop, {:missing_binary, name, reason}}
     end
   end
 
-  defp open(exe, args) do
-    port = Port.open({:spawn_executable, exe}, [:binary, :exit_status, args: args])
+  defp open(exe, args, env) do
+    port = Port.open({:spawn_executable, exe}, [:binary, :exit_status, args: args, env: env])
     %{port: port, exe: exe, os_pid: os_pid(port)}
   end
 
@@ -67,10 +71,22 @@ defmodule CentralLauncher.PrivBinary do
   def terminate(_reason, %{os_pid: os_pid}) when is_integer(os_pid) do
     case :os.type() do
       {:win32, _} -> System.cmd("taskkill", ["/PID", to_string(os_pid), "/T", "/F"])
-      _ -> System.cmd("kill", [to_string(os_pid)])
+      _ -> terminate_unix(to_string(os_pid))
     end
 
     :ok
+  end
+
+  # libgodot_host ignores SIGTERM while in the command loop, so a plain kill
+  # leaves the engine running after the launcher exits.
+  defp terminate_unix(pid) do
+    System.cmd("kill", [pid])
+    Process.sleep(2_000)
+
+    case System.cmd("kill", ["-0", pid], stderr_to_stdout: true) do
+      {_out, 0} -> System.cmd("kill", ["-9", pid])
+      _ -> {"", 0}
+    end
   end
 
   def terminate(_reason, _state), do: :ok
