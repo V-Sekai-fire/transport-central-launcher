@@ -43,24 +43,15 @@ defmodule CentralLauncher.MixProject do
 
   defp erts, do: to_string(:code.root_dir())
 
-  # A missing payload fails the build. A release that ships without its children
-  # still starts, and then cannot do the one thing it exists for.
+  # A missing payload fails the build. fetch_env! and cp! are the failure: a
+  # release that ships without its children still starts, and then cannot do
+  # the one thing it exists for.
   defp stage_payload(%Mix.Release{} = release) do
     priv = Path.join(release.path, "lib/central_launcher-#{release.version}/priv")
     File.mkdir_p!(priv)
 
     for {var, name} <- payload() do
-      case System.get_env(var) do
-        path when is_binary(path) ->
-          if File.exists?(path) do
-            File.cp!(path, Path.join(priv, name))
-          else
-            Mix.raise("#{var}=#{path} does not exist")
-          end
-
-        nil ->
-          Mix.raise("#{var} is unset; the release would ship without #{name}")
-      end
+      File.cp!(System.fetch_env!(var), Path.join(priv, name))
     end
 
     release
