@@ -3,6 +3,15 @@ defmodule CentralLauncher.MixProject do
 
   @version "0.1.0"
 
+  # Burrito fetches a prebuilt ERTS for the local OTP, and there is none for
+  # 29.1. A Homebrew install is not relocatable, so name the 29.0 prebuilt
+  # rather than bundling the desk's.
+  @otp "29.0"
+  @erts_base "https://beam-machine-universal.b-cdn.net/OTP-#{@otp}"
+  @erts_macos "#{@erts_base}/macos/universal/otp_#{@otp}_macos_universal.tar.gz"
+  @erts_linux "#{@erts_base}/linux/x86_64/any/otp_#{@otp}_linux_any_x86_64.tar.gz"
+  @erts_windows "https://github.com/erlang/otp/releases/download/OTP-#{@otp}/otp_win64_#{@otp}.exe"
+
   def project do
     [
       app: :central_launcher,
@@ -31,17 +40,15 @@ defmodule CentralLauncher.MixProject do
         steps: [:assemble, &stage_payload/1, &Burrito.wrap/1],
         burrito: [
           targets: [
-            macos_arm64: [os: :darwin, cpu: :aarch64, custom_erts: erts()],
-            linux_x86_64: [os: :linux, cpu: :x86_64, custom_erts: erts()],
-            windows_amd64: [os: :windows, cpu: :x86_64]
+            macos_arm64: [os: :darwin, cpu: :aarch64, custom_erts: @erts_macos],
+            linux_x86_64: [os: :linux, cpu: :x86_64, custom_erts: @erts_linux],
+            windows_amd64: [os: :windows, cpu: :x86_64, custom_erts: @erts_windows]
           ],
           skip_nifs: true
         ]
       ]
     ]
   end
-
-  defp erts, do: to_string(:code.root_dir())
 
   # A missing payload fails the build. fetch_env! and cp! are the failure: a
   # release that ships without its children still starts, and then cannot do
