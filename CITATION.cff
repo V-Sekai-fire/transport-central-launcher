@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "transport-central-launcher"
+abstract: "Installs, launches and updates the workspace runtime as one self-contained binary per platform, supervising its staged children and moving between versions by content-defined chunking."
+authors:
+  - family-names: "Lee"
+    given-names: "K. S. Ernest (iFire)"
+    email: "ernest.lee@chibifire.com"
+license: MIT
+repository-code: "https://github.com/V-Sekai-fire/transport-central-launcher"
+date-released: 2026-09-18
+references:
+  - type: software
+    title: "versitygw"
+    version: "1.8.0"
+    license: Apache-2.0
+    repository-code: "https://github.com/versity/versitygw"
+    notes: "Staged into priv/ as the S3 gateway. Redistributed unmodified."
+  - type: software
+    title: "OpenBao"
+    version: "2.6.2"
+    license: MPL-2.0
+    repository-code: "https://github.com/openbao/openbao"
+    notes: "Staged into priv/ as the secrets service. Redistributed unmodified; MPL-2.0 permits distribution in a Larger Work provided the covered source stays available, which this record points at."
+  - type: software
+    title: "FoundationDB"
+    version: "7.3.76"
+    license: Apache-2.0
+    repository-code: "https://github.com/apple/foundationdb"
+    notes: "Client library and server staged into priv/. The version matches the weftspun-fdb cluster, because FDB requires the client protocol version to match."
+  - type: software
+    title: "desync"
+    version: "1.1.4"
+    license: BSD-3-Clause
+    repository-code: "https://github.com/folbricht/desync"
+    notes: "Staged into priv/ as the update mechanism."
+  - type: software
+    title: "Godot Engine"
+    license: MIT
+    repository-code: "https://github.com/V-Sekai-fire/entities-godot"
+    notes: "libgodot and its host are built from this fork and staged into priv/."
