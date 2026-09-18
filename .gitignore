@@ -2,3 +2,6 @@ _build/
 deps/
 burrito_out/
 *.ez
+# pixi environments
+.pixi/*
+!.pixi/config.toml
