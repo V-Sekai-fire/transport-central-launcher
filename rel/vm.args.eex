@@ -1,0 +1,8 @@
+## Name encoding is read from the locale, and a container with none set
+## leaves the VM on latin1, which Elixir warns about on every boot.
++fnu
+
+## No distribution: the launcher supervises OS processes, it does not
+## talk to other nodes.
+-start_epmd false
+-erl_epmd_port none

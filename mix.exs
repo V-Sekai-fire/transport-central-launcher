@@ -6,11 +6,13 @@ defmodule CentralLauncher.MixProject do
   # Burrito fetches a prebuilt ERTS for the local OTP, and there is none for
   # 29.1. A Homebrew install is not relocatable, so name the 29.0 prebuilt
   # rather than bundling the desk's.
-  @otp "29.0"
+  @otp "29.1"
   @erts_base "https://beam-machine-universal.b-cdn.net/OTP-#{@otp}"
-  @erts_macos "#{@erts_base}/macos/universal/otp_#{@otp}_macos_universal.tar.gz"
+  @erts_macos Path.expand("../otp/otp_29.1_macos_arm64.tar.gz", __DIR__)
   @erts_linux "#{@erts_base}/linux/x86_64/any/otp_#{@otp}_linux_any_x86_64.tar.gz"
-  @erts_linux_arm "#{@erts_base}/linux/aarch64/any/otp_#{@otp}_linux_any_aarch64.tar.gz"
+  # OTP 29.1 has no prebuilt ERTS on beam-machine-universal, so these are
+  # built from otp_src_29.1 and named by path until they are published.
+  @erts_linux_arm Path.expand("../otp/otp_29.1_linux_any_aarch64.tar.gz", __DIR__)
   @erts_windows "https://github.com/erlang/otp/releases/download/OTP-#{@otp}/otp_win64_#{@otp}.exe"
 
   def project do
@@ -44,6 +46,7 @@ defmodule CentralLauncher.MixProject do
   defp releases do
     [
       central_launcher: [
+        rel_templates_path: "rel",
         steps: [:assemble, &stage_payload/1, &Burrito.wrap/1],
         burrito: [
           targets: [
