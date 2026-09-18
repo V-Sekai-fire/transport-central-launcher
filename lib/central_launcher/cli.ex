@@ -14,31 +14,56 @@ defmodule CentralLauncher.CLI do
   # Burrito self-extracts before this runs, so install is a check that every
   # staged child is present rather than an unpacking step of its own.
   defp install do
+    mode = CentralLauncher.Mode.current()
+
     missing =
-      for name <- ~w(libgodot_host libgodot),
+      for name <- CentralLauncher.Mode.children(mode),
           match?({:error, _}, CentralLauncher.PrivBinary.path(:central_launcher, name)),
           do: name
 
     case missing do
-      [] -> {:ok, "installed"}
+      [] -> {:ok, "installed (#{mode})"}
       names -> {:error, {:missing, names}}
     end
   end
 
   defp launch do
-    spec = {CentralLauncher.PrivBinary, app: :central_launcher, binary: "libgodot_host"}
+    mode = CentralLauncher.Mode.current()
 
-    case Supervisor.start_child(CentralLauncher.Supervisor, spec) do
-      {:ok, _pid} -> {:ok, "launched"}
+    started =
+      Enum.reduce_while(CentralLauncher.Mode.children(mode), [], fn name, acc ->
+        spec = child_spec(name)
+
+        case Supervisor.start_child(CentralLauncher.Supervisor, spec) do
+          {:ok, _pid} -> {:cont, [name | acc]}
+          {:error, reason} -> {:halt, {:error, {name, reason}}}
+        end
+      end)
+
+    case started do
       {:error, reason} -> {:error, reason}
+      names -> {:ok, "launched #{mode}: #{Enum.join(Enum.reverse(names), ", ")}"}
     end
+  end
+
+  defp child_spec(name) do
+    Supervisor.child_spec(
+      {CentralLauncher.PrivBinary, app: :central_launcher, binary: name, name: :"child_#{name}"},
+      id: name
+    )
   end
 
   defp usage do
     "central-launcher install | launch | update <index> <dest> <seed> | version"
   end
 
-  defp report({:ok, message}), do: IO.puts(to_string(message))
+  # Halting is load-bearing: Burrito boots with `-s elixir start_cli`, which
+  # reads the first plain argument as a script to run. Exiting first is what
+  # stops `install` being looked up as a filename.
+  defp report({:ok, message}) do
+    IO.puts(to_string(message))
+    System.halt(0)
+  end
 
   defp report({:error, reason}) do
     IO.puts(:stderr, "central-launcher: #{inspect(reason)}")

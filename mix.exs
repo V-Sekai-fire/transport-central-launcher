@@ -7,7 +7,7 @@ defmodule CentralLauncher.MixProject do
     [
       app: :central_launcher,
       version: @version,
-      elixir: "~> 1.19",
+      elixir: "~> 1.20",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       releases: releases()
@@ -57,7 +57,19 @@ defmodule CentralLauncher.MixProject do
     release
   end
 
+  # Every child the binary carries. fdbserver is standalone-only; the rest are
+  # needed in both modes, so all of them must be staged for a release to build.
   defp payload do
-    [{"LAUNCHER_LIBGODOT_HOST", "libgodot_host"}, {"LAUNCHER_LIBGODOT", "libgodot"}]
+    [
+      {"LAUNCHER_LIBGODOT_HOST", "libgodot_host"},
+      {"LAUNCHER_LIBGODOT", "libgodot"},
+      {"LAUNCHER_ICEORYX2", "iceoryx2"},
+      {"LAUNCHER_WEFT_SQL", "weft_sql"},
+      {"LAUNCHER_LIBFDB_C", "libfdb_c"},
+      {"LAUNCHER_FDBSERVER", "fdbserver"},
+      {"LAUNCHER_BAO", "bao"},
+      {"LAUNCHER_VERSITYGW", "versitygw"},
+      {"LAUNCHER_DESYNC", "desync"}
+    ]
   end
 end

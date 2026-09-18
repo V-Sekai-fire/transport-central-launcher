@@ -23,8 +23,8 @@ jobs:
 
       - uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.19"
-          otp-version: "28.3"
+          elixir-version: "1.20.4"
+          otp-version: "29"
 
       # Burrito compresses its payload with xz, and the Windows ERTS can only be
       # laid out on Windows, which is why each target builds on its own runner.
