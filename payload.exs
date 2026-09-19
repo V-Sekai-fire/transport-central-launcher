@@ -73,15 +73,15 @@
     },
     %{
       name: "fdbserver",
-      version: "7.3.76",
-      url: "https://github.com/apple/foundationdb/releases/download/7.3.76/fdbserver.x86_64",
+      version: "7.3.79",
+      url: "https://github.com/apple/foundationdb/releases/download/7.3.79/fdbserver.x86_64",
       extract: "fdbserver.x86_64",
       sha256: "from-release-asset"
     },
     %{
       name: "libfdb_c",
-      version: "7.3.76",
-      url: "https://github.com/apple/foundationdb/releases/download/7.3.76/libfdb_c.x86_64.so",
+      version: "7.3.79",
+      url: "https://github.com/apple/foundationdb/releases/download/7.3.79/libfdb_c.x86_64.so",
       extract: "libfdb_c.x86_64.so",
       sha256: "from-release-asset"
     },
@@ -134,15 +134,15 @@
     },
     %{
       name: "fdbserver",
-      version: "7.3.76",
-      url: "https://github.com/apple/foundationdb/releases/download/7.3.76/fdbserver.aarch64",
+      version: "7.3.79",
+      url: "https://github.com/apple/foundationdb/releases/download/7.3.79/fdbserver.aarch64",
       extract: "fdbserver.aarch64",
       sha256: "from-release-asset"
     },
     %{
       name: "libfdb_c",
-      version: "7.3.76",
-      url: "https://github.com/apple/foundationdb/releases/download/7.3.76/libfdb_c.aarch64.so",
+      version: "7.3.79",
+      url: "https://github.com/apple/foundationdb/releases/download/7.3.79/libfdb_c.aarch64.so",
       extract: "libfdb_c.aarch64.so",
       sha256: "from-release-asset"
     },
@@ -195,17 +195,17 @@
     },
     %{
       name: "fdbserver",
-      version: "7.3.76",
+      version: "7.3.79",
       url:
-        "https://github.com/apple/foundationdb/releases/download/7.3.76/FoundationDB-7.3.76_arm64.pkg",
+        "https://github.com/apple/foundationdb/releases/download/7.3.79/FoundationDB-7.3.79_arm64.pkg",
       extract: "FoundationDB-server.pkg/Payload/usr/local/libexec/fdbserver",
       sha256: "67f6c43eecf3da67"
     },
     %{
       name: "libfdb_c",
-      version: "7.3.76",
+      version: "7.3.79",
       url:
-        "https://github.com/apple/foundationdb/releases/download/7.3.76/FoundationDB-7.3.76_arm64.pkg",
+        "https://github.com/apple/foundationdb/releases/download/7.3.79/FoundationDB-7.3.79_arm64.pkg",
       extract: "FoundationDB-clients.pkg/Payload/usr/local/lib/libfdb_c.dylib",
       sha256: "dee08032dd3a7aac"
     },

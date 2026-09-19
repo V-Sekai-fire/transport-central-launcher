@@ -21,6 +21,7 @@ jobs:
             engine_platform: macos
             engine_arch: arm64
             engine_lib: bin/libgodot.macos.template_release.arm64.dylib
+            connector_lib: libgodot.dylib
             engine_flags: ""
             payload_lib: libgodot
             host_bin: libgodot_host
@@ -30,6 +31,7 @@ jobs:
             engine_platform: linuxbsd
             engine_arch: x86_64
             engine_lib: bin/libgodot.linuxbsd.template_release.x86_64.so
+            connector_lib: libgodot.so
             engine_flags: use_sowrap=yes
             payload_lib: libgodot
             host_bin: libgodot_host
@@ -39,6 +41,7 @@ jobs:
             engine_platform: linuxbsd
             engine_arch: arm64
             engine_lib: bin/libgodot.linuxbsd.template_release.arm64.so
+            connector_lib: libgodot.so
             engine_flags: use_sowrap=yes
             payload_lib: libgodot
             host_bin: libgodot_host
@@ -47,7 +50,8 @@ jobs:
             runs_on: windows-2022
             engine_platform: windows
             engine_arch: x86_64
-            engine_lib: bin/libgodot.windows.template_release.x86_64.dll
+            engine_lib: bin/godot.windows.template_release.x86_64.dll
+            connector_lib: libgodot.dll
             engine_flags: ""
             payload_lib: libgodot.dll
             host_bin: libgodot_host.exe
@@ -134,6 +138,10 @@ jobs:
             library_type=shared_library production=yes arch=${{ matrix.engine_arch }} \
             debug_symbols=no ${{ matrix.engine_flags }} -j3
           ls -la bin/
+          # Windows drops the lib prefix that Linux and macOS carry, so the
+          # name is per target and worth checking where it is produced.
+          test -f "${{ matrix.engine_lib }}" || {
+            echo "engine built but ${{ matrix.engine_lib }} is not there"; exit 1; }
 
       - name: Build iceoryx2
         shell: bash
@@ -149,8 +157,7 @@ jobs:
             https://github.com/V-Sekai-fire/entities-godot/releases/download/gdext-4.8.dev/gdextension-4.8.dev.tar.gz
           mkdir -p connector/build
           tar xzf gdext.tar.gz -C connector/build
-          cp "engine/${{ matrix.engine_lib }}" \
-             "connector/build/$([ "${{ runner.os }}" = "Windows" ] && echo libgodot.dll || ([ "${{ runner.os }}" = "macOS" ] && echo libgodot.dylib || echo libgodot.so))"
+          cp "engine/${{ matrix.engine_lib }}" "connector/build/${{ matrix.connector_lib }}"
 
       - name: Build libgodot_host
         shell: bash
