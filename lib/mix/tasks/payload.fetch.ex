@@ -10,7 +10,6 @@ defmodule Mix.Tasks.Payload.Fetch do
   use Mix.Task
 
   @shortdoc "Fetch the upstream binaries for BURRITO_TARGET"
-  @ours "github.com/V-Sekai-fire"
 
   @impl Mix.Task
   def run(argv) do
@@ -19,7 +18,7 @@ defmodule Mix.Tasks.Payload.Fetch do
     File.mkdir_p!(dir)
 
     entries = "payload.exs" |> Code.eval_file() |> elem(0) |> Map.fetch!(target)
-    {ours, upstream} = Enum.split_with(entries, &String.contains?(&1.url, @ours))
+    {ours, upstream} = Enum.split_with(entries, &built_here?/1)
 
     Enum.each(upstream, &fetch(&1, dir))
 
@@ -28,6 +27,13 @@ defmodule Mix.Tasks.Payload.Fetch do
   end
 
   defp names(entries), do: entries |> Enum.map(& &1.name) |> Enum.join(", ")
+
+  # A row naming a repository is built from that source; a row naming a file in
+  # it is downloaded. Reading the owner instead said our own FoundationDB
+  # release was built here, and the release failed on a file nobody fetched.
+  defp built_here?(%{url: url}) do
+    url |> URI.parse() |> Map.get(:path, "") |> to_string() |> Path.split() |> length() <= 3
+  end
 
   defp fetch(%{name: name, url: url, extract: extract}, dir) do
     dest = Path.join(dir, name)
