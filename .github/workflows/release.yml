@@ -100,14 +100,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: V-Sekai-fire/entities-godot
-          ref: head/float16-gcc-aarch64
+          # The assembled fabric, not a feature branch: a branch is deleted
+          # when its pull request merges and every job then fails at checkout.
+          ref: refs/tags/v2026.09.19.0820-main-fabric-0.2.4
           path: engine
 
       - name: Check out the connector
         uses: actions/checkout@v4
         with:
           repository: V-Sekai-fire/transport-elixir-libgodot-connector
-          ref: head/libgodot-host-4-8
+          ref: main/main
           path: connector
 
       - name: Check out iceoryx2
