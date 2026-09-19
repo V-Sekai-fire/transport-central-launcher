@@ -7,11 +7,13 @@ defmodule CentralLauncher.CLI do
 
   defp run(["install" | _]), do: install()
   defp run(["launch" | _]), do: launch()
+
   defp run(["update", index, dest, seed, store]),
     do: CentralLauncher.Update.fetch(index, dest, seed, store)
 
   defp run(["update", index, dest, store]),
     do: CentralLauncher.Update.fetch(index, dest, store)
+
   defp run(["version" | _]), do: {:ok, Application.spec(:central_launcher, :vsn)}
   defp run(_argv), do: {:ok, usage()}
 

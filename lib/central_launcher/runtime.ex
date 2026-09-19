@@ -28,7 +28,16 @@ defmodule CentralLauncher.Runtime do
   def args("bao"), do: ["server", "-config=" <> bao_config()]
 
   def args("fdbserver") do
-    ["-p", "127.0.0.1:#{@fdb_port}", "-d", sub("fdb/data"), "-L", sub("fdb/logs"), "-C", cluster_file()]
+    [
+      "-p",
+      "127.0.0.1:#{@fdb_port}",
+      "-d",
+      sub("fdb/data"),
+      "-L",
+      sub("fdb/logs"),
+      "-C",
+      cluster_file()
+    ]
   end
 
   def args("versitygw"), do: ["--port", "127.0.0.1:7070", "posix", sub("s3")]

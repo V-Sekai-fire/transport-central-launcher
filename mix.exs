@@ -79,7 +79,7 @@ defmodule CentralLauncher.MixProject do
   # Declared in payload.exs, not in the environment: a variable is invisible to
   # the editor and gone the next time somebody builds.
   defp payload do
-    "payload.exs" |> Code.eval_file() |> elem(0) |> Map.fetch!(target()) 
+    "payload.exs" |> Code.eval_file() |> elem(0) |> Map.fetch!(target())
   end
 
   defp payload_dir, do: Path.join("payload", target())
