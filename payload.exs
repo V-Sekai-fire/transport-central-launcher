@@ -102,7 +102,7 @@
     %{
       name: "libgodot",
       version: "4.8.dev.bc391afc4",
-      url: "https://github.com/V-Sekai-fire/entities-libgodot",
+      url: "https://github.com/V-Sekai-fire/entities-godot",
       extract: "bin/libgodot.linuxbsd.template_release.x86_64.so",
       sha256: "built-locally"
     },
@@ -163,7 +163,7 @@
     %{
       name: "libgodot",
       version: "4.8.dev.bc391afc4",
-      url: "https://github.com/V-Sekai-fire/entities-libgodot",
+      url: "https://github.com/V-Sekai-fire/entities-godot",
       extract: "bin/libgodot.linuxbsd.template_release.arm64.so",
       sha256: "built-locally"
     },
@@ -225,11 +225,10 @@
     },
     %{
       name: "libgodot",
-      version: "4.5.1-5",
-      url:
-        "https://github.com/V-Sekai-fire/interactor-elixir-libgodot/releases/download/draft-7bc02d4e685a965ccdd4587ba82e518694befc74/lib_godot_connector-nif-2.17-aarch64-apple-darwin-4.5.1-5.tar.gz",
-      extract: "libgodot.dylib",
-      sha256: "0c3f2a1e00000000"
+      version: "4.8.dev.bc391afc4",
+      url: "https://github.com/V-Sekai-fire/entities-godot",
+      extract: "bin/libgodot.macos.template_release.arm64.dylib",
+      sha256: "built-in-ci"
     },
     %{
       name: "libiceoryx2_ffi_c.dylib",

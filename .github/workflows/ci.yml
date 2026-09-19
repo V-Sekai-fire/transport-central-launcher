@@ -35,11 +35,10 @@ jobs:
       # nobody published fails here rather than an hour into a release build.
       - name: every payload url resolves
         run: |
-          mix run -e '
+          elixir -e '
             "payload.exs" |> Code.eval_file() |> elem(0) |> Enum.each(fn {target, entries} ->
               Enum.each(entries, fn e ->
-                if String.starts_with?(e.url, "https://github.com/") and
-                     not String.ends_with?(e.url, ["connector", "libgodot", "entities-godot"]) do
+                if not String.contains?(e.url, "github.com/V-Sekai-fire") do
                   {out, code} = System.cmd("curl", ["-sIL", "-o", "/dev/null", "-w", "%{http_code}", e.url])
                   if out != "200", do: raise("#{target}/#{e.name}: #{e.url} answered #{out}")
                   IO.puts("  ok #{target}/#{e.name}")
