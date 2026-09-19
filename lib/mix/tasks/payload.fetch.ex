@@ -43,7 +43,36 @@ defmodule Mix.Tasks.Payload.Fetch do
     File.cp!(Path.join(tmp, extract), dest)
     File.chmod!(dest, 0o755)
     File.rm_rf!(tmp)
+    executable!(dest)
   end
+
+  # A wrong URL answers with a web page rather than an error, and a staged HTML
+  # file reads exactly like a staged binary until something tries to run it.
+  # One entry pointed at a repository rather than a release and produced a
+  # 532 KB page that got as far as the release.
+  defp executable!(path) do
+    head = File.open!(path, [:read, :binary], &IO.binread(&1, 4))
+
+    if known?(head) do
+      :ok
+    else
+      File.rm_rf!(path)
+
+      Mix.raise("""
+      #{path} is not an executable or library: it starts with #{inspect(head)}.
+      The url in payload.exs most likely answers with a web page rather than the
+      file. The staged copy has been removed.
+      """)
+    end
+  end
+
+  defp known?(<<0x7F, ?E, ?L, ?F>>), do: true
+  defp known?(<<0xCF, 0xFA, 0xED, 0xFE>>), do: true
+  defp known?(<<0xCE, 0xFA, 0xED, 0xFE>>), do: true
+  defp known?(<<0xCA, 0xFE, 0xBA, 0xBE>>), do: true
+  defp known?(<<0xBE, 0xBA, 0xFE, 0xCA>>), do: true
+  defp known?(<<?M, ?Z, _, _>>), do: true
+  defp known?(_head), do: false
 
   # A `.exe`, a bare binary and a `.so` arrive as themselves; everything else
   # is an archive whose `extract` path names the file inside it.
@@ -54,6 +83,13 @@ defmodule Mix.Tasks.Payload.Fetch do
 
       String.ends_with?(archive, ".zip") ->
         {_, 0} = System.cmd("unzip", ["-q", "-o", archive, "-d", dir])
+
+      # FoundationDB ships macOS as an installer package, so the binaries sit
+      # under each component's Payload rather than at the top of an archive.
+      String.ends_with?(archive, ".pkg") ->
+        out = Path.join(dir, "pkg")
+        {_, 0} = System.cmd("pkgutil", ["--expand-full", archive, out])
+        File.cp_r!(out, dir)
 
       true ->
         :ok

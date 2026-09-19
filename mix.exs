@@ -7,7 +7,6 @@ defmodule CentralLauncher.MixProject do
   # 29.1. A Homebrew install is not relocatable, so name the 29.0 prebuilt
   # rather than bundling the desk's.
   @otp "29.1"
-  @erts_base "https://beam-machine-universal.b-cdn.net/OTP-#{@otp}"
   @erts_ours "https://github.com/V-Sekai-fire/transport-central-launcher/releases/download/erts-29.1"
   @erts_macos "#{@erts_ours}/otp_29.1_macos_arm64.tar.gz"
   @erts_linux "#{@erts_ours}/otp_29.1_linux_any_x86_64.tar.gz"

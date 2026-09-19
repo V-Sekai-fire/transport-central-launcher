@@ -26,9 +26,9 @@
     },
     %{
       name: "desync.exe",
-      version: "0.9.6",
+      version: "1.1.3",
       url:
-        "https://github.com/folbricht/desync/releases/download/v0.9.6/desync_0.9.6_windows_amd64.tar.gz",
+        "https://github.com/folbricht/desync/releases/download/v1.1.3/desync_1.1.3_windows_amd64.zip",
       extract: "desync.exe",
       sha256: "from-release-asset"
     },
@@ -108,9 +108,9 @@
     },
     %{
       name: "desync",
-      version: "0.9.6",
+      version: "1.1.3",
       url:
-        "https://github.com/folbricht/desync/releases/download/v0.9.6/desync_0.9.6_linux_amd64.tar.gz",
+        "https://github.com/folbricht/desync/releases/download/v1.1.3/desync_1.1.3_linux_amd64.tar.gz",
       extract: "desync",
       sha256: "from-release-asset"
     }
@@ -169,9 +169,9 @@
     },
     %{
       name: "desync",
-      version: "0.9.6",
+      version: "1.1.3",
       url:
-        "https://github.com/folbricht/desync/releases/download/v0.9.6/desync_0.9.6_linux_arm64.tar.gz",
+        "https://github.com/folbricht/desync/releases/download/v1.1.3/desync_1.1.3_linux_arm64.tar.gz",
       extract: "desync",
       sha256: "from-release-asset"
     }
@@ -198,7 +198,7 @@
       version: "7.3.76",
       url:
         "https://github.com/apple/foundationdb/releases/download/7.3.76/FoundationDB-7.3.76_arm64.pkg",
-      extract: "usr/local/libexec/fdbserver",
+      extract: "FoundationDB-server.pkg/Payload/usr/local/libexec/fdbserver",
       sha256: "67f6c43eecf3da67"
     },
     %{
@@ -206,7 +206,7 @@
       version: "7.3.76",
       url:
         "https://github.com/apple/foundationdb/releases/download/7.3.76/FoundationDB-7.3.76_arm64.pkg",
-      extract: "usr/local/lib/libfdb_c.dylib",
+      extract: "FoundationDB-clients.pkg/Payload/usr/local/lib/libfdb_c.dylib",
       sha256: "dee08032dd3a7aac"
     },
     %{
@@ -233,8 +233,9 @@
     },
     %{
       name: "desync",
-      version: "1.1.4",
-      url: "https://github.com/folbricht/desync",
+      version: "1.1.3",
+      url:
+        "https://github.com/folbricht/desync/releases/download/v1.1.3/desync_1.1.3_darwin_arm64.tar.gz",
       extract: "desync",
       sha256: "ef066048a903d3fc"
     }

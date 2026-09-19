@@ -35,7 +35,7 @@ jobs:
             host_bin: libgodot_host
             iox_lib: libiceoryx2_ffi_c.so
           - target: linux_arm64
-            runs_on: ubuntu-24.04-arm
+            runs_on: ubuntu-22.04-arm
             engine_platform: linuxbsd
             engine_arch: arm64
             engine_lib: bin/libgodot.linuxbsd.template_release.arm64.so
@@ -68,11 +68,15 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Install xz
+      # Ubuntu 22.04 packages SCons 4.0.1 and the engine requires 4.4, so it
+      # comes from pip. 22.04 stays: it sets the glibc floor for the engine.
+      - name: Install xz and scons
         shell: bash
         run: |
           case "${{ runner.os }}" in
-            Linux) sudo apt-get update && sudo apt-get install -y xz-utils scons ;;
+            Linux) sudo apt-get update && sudo apt-get install -y xz-utils
+                   python3 -m pip install --user --upgrade 'scons>=4.4'
+                   echo "$HOME/.local/bin" >> $GITHUB_PATH ;;
             macOS) brew install xz scons ;;
             Windows) echo "C:\msys64\usr\bin" >> $GITHUB_PATH ; pip install scons ;;
           esac
