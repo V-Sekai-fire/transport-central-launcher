@@ -1,0 +1,49 @@
+# The release workflow builds an engine and a payload, which is an hour a job and
+# is why it runs on a tag rather than on a pull request. This is what a pull
+# request can afford: the pure logic, and the manifest that names the payload.
+name: ci
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main/main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.20.4"
+          otp-version: "29"
+      - run: mix deps.get
+      - run: mix compile --warnings-as-errors
+      - run: mix format --check-formatted
+      - run: mix test
+
+  payload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.20.4"
+          otp-version: "29"
+      # Every url in the manifest answers, so a row that names a release asset
+      # nobody published fails here rather than an hour into a release build.
+      - name: every payload url resolves
+        run: |
+          mix run -e '
+            "payload.exs" |> Code.eval_file() |> elem(0) |> Enum.each(fn {target, entries} ->
+              Enum.each(entries, fn e ->
+                if String.starts_with?(e.url, "https://github.com/") and
+                     not String.ends_with?(e.url, ["connector", "libgodot", "entities-godot"]) do
+                  {out, code} = System.cmd("curl", ["-sIL", "-o", "/dev/null", "-w", "%{http_code}", e.url])
+                  if out != "200", do: raise("#{target}/#{e.name}: #{e.url} answered #{out}")
+                  IO.puts("  ok #{target}/#{e.name}")
+                end
+              end)
+            end)
+          '

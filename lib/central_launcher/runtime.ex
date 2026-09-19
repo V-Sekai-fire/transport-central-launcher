@@ -50,20 +50,16 @@ defmodule CentralLauncher.Runtime do
 
   def env(_name), do: []
 
-  defp libgodot do
-    case :os.type() do
-      {:win32, _} -> "libgodot.dll"
-      _ -> "libgodot"
-    end
-  end
+  @doc "The engine library's filename on a given platform."
+  def libgodot(os \\ :os.type())
+  def libgodot({:win32, _}), do: "libgodot.dll"
+  def libgodot(_os), do: "libgodot"
 
-  defp iceoryx2 do
-    case :os.type() do
-      {:unix, :darwin} -> "libiceoryx2_ffi_c.dylib"
-      {:win32, _} -> "iceoryx2_ffi_c.dll"
-      _ -> "libiceoryx2_ffi_c.so"
-    end
-  end
+  @doc "The iceoryx2 library's filename on a given platform."
+  def iceoryx2(os \\ :os.type())
+  def iceoryx2({:unix, :darwin}), do: "libiceoryx2_ffi_c.dylib"
+  def iceoryx2({:win32, _}), do: "iceoryx2_ffi_c.dll"
+  def iceoryx2(_os), do: "libiceoryx2_ffi_c.so"
 
   defp priv, do: :code.priv_dir(:central_launcher) |> to_string()
 
