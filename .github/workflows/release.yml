@@ -102,7 +102,7 @@ jobs:
           repository: V-Sekai-fire/entities-godot
           # The assembled fabric, not a feature branch: a branch is deleted
           # when its pull request merges and every job then fails at checkout.
-          ref: refs/tags/v2026.09.19.0820-main-fabric-0.2.4
+          ref: refs/tags/v2026.09.19.1621-main-fabric-0.2.4
           path: engine
 
       - name: Check out the connector
@@ -184,7 +184,13 @@ jobs:
           mix payload.fetch ${{ matrix.target }}
           DIR=payload/${{ matrix.target }}
           cp "engine/${{ matrix.engine_lib }}" "$DIR/${{ matrix.payload_lib }}"
-          cp connector/samples/elixir_sample/priv/${{ matrix.host_bin }} "$DIR/${{ matrix.host_bin }}"
+          # -T ClangCL is a multi-config generator, so Windows writes the host
+          # into priv/Release/ where the single-config platforms write priv/.
+          HOST=connector/samples/elixir_sample/priv/${{ matrix.host_bin }}
+          [ -f "$HOST" ] || HOST=connector/samples/elixir_sample/priv/Release/${{ matrix.host_bin }}
+          test -f "$HOST" || { echo "libgodot_host built but is not where the copy looks"; \
+            find connector/samples/elixir_sample/priv -name '${{ matrix.host_bin }}'; exit 1; }
+          cp "$HOST" "$DIR/${{ matrix.host_bin }}"
           find iceoryx2/target/release -name "${{ matrix.iox_lib }}" -exec cp {} "$DIR/" \;
           ls -la "$DIR"
 
