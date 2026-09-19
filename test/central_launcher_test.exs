@@ -78,3 +78,27 @@ defmodule CentralLauncherTest do
     end
   end
 end
+
+defmodule CentralLauncher.ServiceTest do
+  use ExUnit.Case, async: true
+
+  alias CentralLauncher.Service
+
+  test "install refuses when not running as a packaged binary" do
+    saved = System.get_env("__BURRITO_BIN_PATH")
+    System.delete_env("__BURRITO_BIN_PATH")
+    assert {:error, :not_a_packaged_binary} = Service.install({:unix, :darwin})
+    if saved, do: System.put_env("__BURRITO_BIN_PATH", saved)
+  end
+
+  test "status reaches a different manager on each host" do
+    assert {:ok, "launchctl exit" <> _} = Service.status({:unix, :darwin})
+    assert {:ok, "systemctl exit" <> _} = Service.status({:unix, :linux})
+    assert {:ok, "schtasks exit" <> _} = Service.status({:win32, :nt})
+  end
+
+  test "a manager missing from PATH is an exit code, never a crash" do
+    assert {:ok, body} = Service.status({:win32, :nt})
+    assert body =~ "exit"
+  end
+end
