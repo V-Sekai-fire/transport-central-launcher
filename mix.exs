@@ -1,7 +1,7 @@
 defmodule CentralLauncher.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.2.0-dev.1"
 
   # Burrito fetches a prebuilt ERTS for the local OTP, and there is none for
   # 29.1. A Homebrew install is not relocatable, so name the 29.0 prebuilt
