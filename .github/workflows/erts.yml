@@ -1,0 +1,54 @@
+name: erts
+
+# OTP 29.1 is not on beam-machine-universal for every platform we ship — macOS
+# universal, linux aarch64 and linux x86_64 all return 404 — so the runtimes
+# are built here and published as release assets the release workflow reads.
+on:
+  workflow_dispatch:
+    inputs:
+      otp:
+        description: OTP version to build
+        default: "29.1"
+
+jobs:
+  build:
+    name: erts ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: linux_any_x86_64
+            runs_on: ubuntu-22.04
+    runs-on: ${{ matrix.runs_on }}
+    steps:
+      - name: Build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential autoconf libssl-dev libncurses-dev perl xz-utils
+
+      - name: Build OTP ${{ inputs.otp }}
+        run: |
+          curl -sSL -o otp.tar.gz \
+            https://github.com/erlang/otp/releases/download/OTP-${{ inputs.otp }}/otp_src_${{ inputs.otp }}.tar.gz
+          tar xzf otp.tar.gz
+          cd otp_src_${{ inputs.otp }}
+          export ERL_TOP=$PWD
+          export CFLAGS="-O2 -g -Wno-error"
+          ./configure --without-javac --without-wx --without-debugger \
+            --without-observer --without-et --disable-sctp --enable-builtin-zlib
+          make -j"$(nproc)"
+          make release RELEASE_ROOT="$PWD/../otp_rel"
+          cd ../otp_rel && ./Install -sasl "$PWD" || true
+
+      - name: Pack
+        run: |
+          tar czf otp_${{ inputs.otp }}_${{ matrix.label }}.tar.gz -C otp_rel .
+          ls -la otp_${{ inputs.otp }}_${{ matrix.label }}.tar.gz
+          tar tzf otp_${{ inputs.otp }}_${{ matrix.label }}.tar.gz | grep -oE "(erts-[0-9.]+|lib/stdlib-[0-9.]+)/" | sort -u | head -2
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload erts-${{ inputs.otp }} \
+            otp_${{ inputs.otp }}_${{ matrix.label }}.tar.gz --clobber --repo ${{ github.repository }}

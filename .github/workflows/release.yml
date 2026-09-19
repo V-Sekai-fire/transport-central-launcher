@@ -5,9 +5,10 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
-# linux_x86_64 is absent: OTP 29.1 has no prebuilt ERTS for it on
-# beam-machine-universal, and unlike macOS and linux/aarch64 we have not built
-# one. Adding it means building an ERTS on the runner first.
+# Every ERTS this matrix needs is reachable: Windows uses erlang/otp's own
+# otp_win64 installer, and the other three are built by the erts workflow and
+# published on this repository, because OTP 29.1 is absent from
+# beam-machine-universal for all of them.
 jobs:
   build:
     name: ${{ matrix.target }}
@@ -20,14 +21,25 @@ jobs:
             engine_platform: macos
             engine_arch: arm64
             engine_lib: bin/libgodot.macos.template_release.arm64.dylib
+            engine_flags: ""
             payload_lib: libgodot
             host_bin: libgodot_host
             iox_lib: libiceoryx2_ffi_c.dylib
+          - target: linux_x86_64
+            runs_on: ubuntu-22.04
+            engine_platform: linuxbsd
+            engine_arch: x86_64
+            engine_lib: bin/libgodot.linuxbsd.template_release.x86_64.so
+            engine_flags: use_sowrap=yes
+            payload_lib: libgodot
+            host_bin: libgodot_host
+            iox_lib: libiceoryx2_ffi_c.so
           - target: linux_arm64
             runs_on: ubuntu-24.04-arm
             engine_platform: linuxbsd
             engine_arch: arm64
             engine_lib: bin/libgodot.linuxbsd.template_release.arm64.so
+            engine_flags: use_sowrap=yes
             payload_lib: libgodot
             host_bin: libgodot_host
             iox_lib: libiceoryx2_ffi_c.so
@@ -36,6 +48,7 @@ jobs:
             engine_platform: windows
             engine_arch: x86_64
             engine_lib: bin/libgodot.windows.template_release.x86_64.dll
+            engine_flags: ""
             payload_lib: libgodot.dll
             host_bin: libgodot_host.exe
             iox_lib: iceoryx2_ffi_c.dll
@@ -92,15 +105,17 @@ jobs:
           ref: v0.9.3
           path: iceoryx2
 
-      # use_sowrap keeps X11, ALSA and GL dlopen'd rather than linked, which is
-      # what lets one library run headless in an image with no display stack.
+      # use_sowrap is a linuxbsd option and Godot rejects unknown SCons
+      # variables, so it is per target. On Linux it keeps X11, ALSA and GL
+      # dlopen'd rather than linked, which is what lets the library run
+      # headless in an image with no display stack.
       - name: Build libgodot
         shell: bash
         working-directory: engine
         run: |
           scons platform=${{ matrix.engine_platform }} target=template_release \
             library_type=shared_library production=yes arch=${{ matrix.engine_arch }} \
-            use_sowrap=yes debug_symbols=no -j3
+            debug_symbols=no ${{ matrix.engine_flags }} -j3
           ls -la bin/
 
       - name: Build iceoryx2

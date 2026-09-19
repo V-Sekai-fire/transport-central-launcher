@@ -10,7 +10,7 @@ defmodule CentralLauncher.MixProject do
   @erts_base "https://beam-machine-universal.b-cdn.net/OTP-#{@otp}"
   @erts_ours "https://github.com/V-Sekai-fire/transport-central-launcher/releases/download/erts-29.1"
   @erts_macos "#{@erts_ours}/otp_29.1_macos_arm64.tar.gz"
-  @erts_linux "#{@erts_base}/linux/x86_64/any/otp_#{@otp}_linux_any_x86_64.tar.gz"
+  @erts_linux "#{@erts_ours}/otp_29.1_linux_any_x86_64.tar.gz"
   # OTP 29.1 has no prebuilt ERTS on beam-machine-universal — both the macOS
   # universal and the linux aarch64 URLs 404 — so these two are built from
   # source and published on this repository instead.
