@@ -105,6 +105,19 @@ jobs:
           ref: v0.9.3
           path: iceoryx2
 
+      # The engine's own scripts, rather than turning the drivers off: AccessKit
+      # and Direct3D 12 are hard errors on Windows when their dependencies are
+      # missing, and macOS needs MoltenVK to find a Vulkan SDK at all.
+      - name: Engine build dependencies
+        shell: bash
+        working-directory: engine
+        run: |
+          python3 misc/scripts/install_accesskit.py
+          case "${{ runner.os }}" in
+            macOS)   brew install molten-vk ;;
+            Windows) python3 misc/scripts/install_d3d12_sdk_windows.py ;;
+          esac
+
       # use_sowrap is a linuxbsd option and Godot rejects unknown SCons
       # variables, so it is per target. On Linux it keeps X11, ALSA and GL
       # dlopen'd rather than linked, which is what lets the library run
