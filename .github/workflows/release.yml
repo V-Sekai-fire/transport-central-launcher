@@ -22,6 +22,7 @@ jobs:
             engine_arch: arm64
             engine_lib: bin/libgodot.macos.template_release.arm64.dylib
             connector_lib: libgodot.dylib
+            cmake_flags: ""
             engine_flags: ""
             payload_lib: libgodot
             host_bin: libgodot_host
@@ -32,6 +33,7 @@ jobs:
             engine_arch: x86_64
             engine_lib: bin/libgodot.linuxbsd.template_release.x86_64.so
             connector_lib: libgodot.so
+            cmake_flags: ""
             engine_flags: use_sowrap=yes
             payload_lib: libgodot
             host_bin: libgodot_host
@@ -42,6 +44,7 @@ jobs:
             engine_arch: arm64
             engine_lib: bin/libgodot.linuxbsd.template_release.arm64.so
             connector_lib: libgodot.so
+            cmake_flags: ""
             engine_flags: use_sowrap=yes
             payload_lib: libgodot
             host_bin: libgodot_host
@@ -52,6 +55,7 @@ jobs:
             engine_arch: x86_64
             engine_lib: bin/godot.windows.template_release.x86_64.dll
             connector_lib: libgodot.dll
+            cmake_flags: -T ClangCL
             engine_flags: ""
             payload_lib: libgodot.dll
             host_bin: libgodot_host.exe
@@ -159,11 +163,14 @@ jobs:
           tar xzf gdext.tar.gz -C connector/build
           cp "engine/${{ matrix.engine_lib }}" "connector/build/${{ matrix.connector_lib }}"
 
+      # The harness's generated iceoryx2 stubs declare __attribute__((weak)),
+      # which cl.exe rejects 21 times over, so Windows configures the clang
+      # toolset. Same reason the FoundationDB portability build uses it.
       - name: Build libgodot_host
         shell: bash
         working-directory: connector/samples/elixir_sample
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }}
           cmake --build build --target libgodot_host --config Release -j3
 
       - name: Assemble the payload
