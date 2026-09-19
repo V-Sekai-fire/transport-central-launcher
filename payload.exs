@@ -5,8 +5,6 @@
 # Each entry pins a version and a digest, so a build either produces the payload
 # this file describes or fails.
 %{
-  # FoundationDB publishes no Windows build, so there is no fdbserver or
-  # libfdb_c row here and CentralLauncher.Mode drops the child to match.
   "windows_amd64" => [
     %{
       name: "versitygw.exe",
@@ -30,6 +28,22 @@
       url:
         "https://github.com/folbricht/desync/releases/download/v1.1.3/desync_1.1.3_windows_amd64.zip",
       extract: "desync.exe",
+      sha256: "from-release-asset"
+    },
+    %{
+      name: "fdbserver.exe",
+      version: "7.3.79",
+      url:
+        "https://github.com/V-Sekai-fire/datasource-foundationdb/releases/download/7.3.79-weftspun-dev.2/fdbserver.windows.x86_64.exe",
+      extract: "fdbserver.windows.x86_64.exe",
+      sha256: "from-release-asset"
+    },
+    %{
+      name: "libfdb_c.dll",
+      version: "7.3.79",
+      url:
+        "https://github.com/V-Sekai-fire/datasource-foundationdb/releases/download/7.3.79-weftspun-dev.2/fdb_c.windows.x86_64.dll",
+      extract: "fdb_c.windows.x86_64.dll",
       sha256: "from-release-asset"
     },
     %{
