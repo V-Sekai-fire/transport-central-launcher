@@ -32,6 +32,7 @@ jobs:
             host_bin: libgodot_host
             iox_lib: libiceoryx2_ffi_c.dylib
             scons_cc: '"CC=sccache cc" "CXX=sccache c++"'
+            jobs: 3
             sccache_dir: ~/Library/Caches/Mozilla.sccache
           - target: linux_x86_64
             runs_on: ubuntu-22.04
@@ -45,6 +46,7 @@ jobs:
             host_bin: libgodot_host
             iox_lib: libiceoryx2_ffi_c.so
             scons_cc: '"CC=sccache gcc" "CXX=sccache g++"'
+            jobs: 4
             sccache_dir: ~/.cache/sccache
           - target: linux_arm64
             runs_on: ubuntu-22.04-arm
@@ -58,6 +60,7 @@ jobs:
             host_bin: libgodot_host
             iox_lib: libiceoryx2_ffi_c.so
             scons_cc: '"CC=sccache gcc" "CXX=sccache g++"'
+            jobs: 4
             sccache_dir: ~/.cache/sccache
           - target: windows_amd64
             runs_on: windows-2022
@@ -71,6 +74,7 @@ jobs:
             host_bin: libgodot_host.exe
             iox_lib: iceoryx2_ffi_c.dll
             scons_cc: ""
+            jobs: 4
             sccache_dir: $HOME/AppData/Local/Mozilla/sccache/cache
     runs-on: ${{ matrix.runs_on }}
     steps:
@@ -111,6 +115,19 @@ jobs:
       # The engine is pinned to a tag, so its objects are identical from run to
       # run: 13 to 40 minutes a job rebuilding what a cache already holds.
       # actions/cache stores these with zstd.
+      # actions/cache compresses with zstd only when the binary is on PATH and
+      # falls back to gzip without saying so, which on a 1.3 GB object cache is
+      # the difference worth having. Installed first, and asserted.
+      - name: zstd, for the caches
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            Linux)   sudo apt-get update -qq && sudo apt-get install -y -qq zstd ;;
+            macOS)   brew list zstd >/dev/null 2>&1 || brew install zstd ;;
+            Windows) choco install zstandard -y --no-progress || true ;;
+          esac
+          zstd --version
+
       - uses: mozilla-actions/sccache-action@v0.0.6
 
       - name: Cache the compiler cache
@@ -122,6 +139,9 @@ jobs:
             sccache-${{ matrix.target }}-${{ env.ENGINE_TAG }}-
             sccache-${{ matrix.target }}-
 
+      # cache_limit is 2 GB a target because GitHub keeps 10 GB a repository and
+      # evicts the oldest: four targets sharing one budget. Measured locally, one
+      # target's objects are about 1.3 GB before zstd.
       - name: Cache the SCons object cache
         uses: actions/cache@v4
         with:
@@ -177,8 +197,8 @@ jobs:
         run: |
           scons platform=${{ matrix.engine_platform }} target=template_release \
             library_type=shared_library production=yes arch=${{ matrix.engine_arch }} \
-            debug_symbols=no ${{ matrix.engine_flags }} -j3 \
-            cache_path="${{ github.workspace }}/.scons-cache" cache_limit=8 \
+            debug_symbols=no ${{ matrix.engine_flags }} -j${{ matrix.jobs }} \
+            cache_path="${{ github.workspace }}/.scons-cache" cache_limit=2 \
             ${{ matrix.scons_cc }}
           ls -la bin/
           # Windows drops the lib prefix that Linux and macOS carry, so the
@@ -211,7 +231,7 @@ jobs:
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }} \
             -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
-          cmake --build build --target libgodot_host --config Release -j3
+          cmake --build build --target libgodot_host --config Release -j${{ matrix.jobs }}
 
       - name: Assemble the payload
         shell: bash
