@@ -77,6 +77,8 @@ defmodule CentralLauncher.PrivBinary do
     :ok
   end
 
+  def terminate(_reason, _state), do: :ok
+
   # libgodot_host ignores SIGTERM while in the command loop, so a plain kill
   # leaves the engine running after the launcher exits.
   defp terminate_unix(pid) do
@@ -88,6 +90,4 @@ defmodule CentralLauncher.PrivBinary do
       _ -> {"", 0}
     end
   end
-
-  def terminate(_reason, _state), do: :ok
 end

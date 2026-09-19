@@ -34,7 +34,7 @@ defmodule CentralLauncher.Runtime do
   def args("versitygw"), do: ["--port", "127.0.0.1:7070", "posix", sub("s3")]
 
   def args("libgodot_host") do
-    ["--libgodot", Path.join(priv(), "libgodot"), "--headless"]
+    ["--libgodot", Path.join(priv(), libgodot()), "--headless"]
   end
 
   @doc "Environment a child needs, as charlist pairs for `Port.open/2`."
@@ -48,6 +48,15 @@ defmodule CentralLauncher.Runtime do
     [{~c"WEFT_ICEORYX2_PATH", to_charlist(Path.join(priv(), iceoryx2()))}]
   end
 
+  def env(_name), do: []
+
+  defp libgodot do
+    case :os.type() do
+      {:win32, _} -> "libgodot.dll"
+      _ -> "libgodot"
+    end
+  end
+
   defp iceoryx2 do
     case :os.type() do
       {:unix, :darwin} -> "libiceoryx2_ffi_c.dylib"
@@ -55,8 +64,6 @@ defmodule CentralLauncher.Runtime do
       _ -> "libiceoryx2_ffi_c.so"
     end
   end
-
-  def env(_name), do: []
 
   defp priv, do: :code.priv_dir(:central_launcher) |> to_string()
 

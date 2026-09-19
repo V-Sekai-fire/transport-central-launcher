@@ -8,11 +8,13 @@ defmodule CentralLauncher.MixProject do
   # rather than bundling the desk's.
   @otp "29.1"
   @erts_base "https://beam-machine-universal.b-cdn.net/OTP-#{@otp}"
-  @erts_macos Path.expand("../otp/otp_29.1_macos_arm64.tar.gz", __DIR__)
+  @erts_ours "https://github.com/V-Sekai-fire/transport-central-launcher/releases/download/erts-29.1"
+  @erts_macos "#{@erts_ours}/otp_29.1_macos_arm64.tar.gz"
   @erts_linux "#{@erts_base}/linux/x86_64/any/otp_#{@otp}_linux_any_x86_64.tar.gz"
-  # OTP 29.1 has no prebuilt ERTS on beam-machine-universal, so these are
-  # built from otp_src_29.1 and named by path until they are published.
-  @erts_linux_arm Path.expand("../otp/otp_29.1_linux_any_aarch64.tar.gz", __DIR__)
+  # OTP 29.1 has no prebuilt ERTS on beam-machine-universal — both the macOS
+  # universal and the linux aarch64 URLs 404 — so these two are built from
+  # source and published on this repository instead.
+  @erts_linux_arm "#{@erts_ours}/otp_29.1_linux_any_aarch64.tar.gz"
   @erts_windows "https://github.com/erlang/otp/releases/download/OTP-#{@otp}/otp_win64_#{@otp}.exe"
 
   def project do

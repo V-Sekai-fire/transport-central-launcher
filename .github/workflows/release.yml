@@ -5,18 +5,40 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+# linux_x86_64 is absent: OTP 29.1 has no prebuilt ERTS for it on
+# beam-machine-universal, and unlike macOS and linux/aarch64 we have not built
+# one. Adding it means building an ERTS on the runner first.
 jobs:
   build:
+    name: ${{ matrix.target }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - target: linux_x86_64
-            runs_on: ubuntu-22.04
           - target: macos_arm64
             runs_on: macos-15
+            engine_platform: macos
+            engine_arch: arm64
+            engine_lib: bin/libgodot.macos.template_release.arm64.dylib
+            payload_lib: libgodot
+            host_bin: libgodot_host
+            iox_lib: libiceoryx2_ffi_c.dylib
+          - target: linux_arm64
+            runs_on: ubuntu-24.04-arm
+            engine_platform: linuxbsd
+            engine_arch: arm64
+            engine_lib: bin/libgodot.linuxbsd.template_release.arm64.so
+            payload_lib: libgodot
+            host_bin: libgodot_host
+            iox_lib: libiceoryx2_ffi_c.so
           - target: windows_amd64
             runs_on: windows-2022
+            engine_platform: windows
+            engine_arch: x86_64
+            engine_lib: bin/libgodot.windows.template_release.x86_64.dll
+            payload_lib: libgodot.dll
+            host_bin: libgodot_host.exe
+            iox_lib: iceoryx2_ffi_c.dll
     runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
@@ -26,30 +48,115 @@ jobs:
           elixir-version: "1.20.4"
           otp-version: "29"
 
-      # Burrito compresses its payload with xz, and the Windows ERTS can only be
-      # laid out on Windows, which is why each target builds on its own runner.
+      # Burrito builds its wrapper with zig, and pins hard to one version.
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Install xz
         shell: bash
         run: |
           case "${{ runner.os }}" in
-            Linux) sudo apt-get update && sudo apt-get install -y xz-utils ;;
-            macOS) brew install xz ;;
-            Windows) echo "C:\msys64\usr\bin" >> $GITHUB_PATH ;;
+            Linux) sudo apt-get update && sudo apt-get install -y xz-utils scons ;;
+            macOS) brew install xz scons ;;
+            Windows) echo "C:\msys64\usr\bin" >> $GITHUB_PATH ; pip install scons ;;
           esac
 
-      - uses: actions/cache@v4
-        with:
-          path: deps
-          key: deps-${{ runner.os }}-${{ hashFiles('mix.lock') }}
+      - name: Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y build-essential pkg-config \
+            libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
+            libwayland-dev libxkbcommon-dev libgl1-mesa-dev libudev-dev
 
-      - name: Build
+      - name: Check out the engine
+        uses: actions/checkout@v4
+        with:
+          repository: V-Sekai-fire/entities-godot
+          ref: head/float16-gcc-aarch64
+          path: engine
+
+      - name: Check out the connector
+        uses: actions/checkout@v4
+        with:
+          repository: V-Sekai-fire/transport-elixir-libgodot-connector
+          ref: head/libgodot-host-4-8
+          path: connector
+
+      - name: Check out iceoryx2
+        uses: actions/checkout@v4
+        with:
+          repository: eclipse-iceoryx/iceoryx2
+          ref: v0.9.3
+          path: iceoryx2
+
+      # use_sowrap keeps X11, ALSA and GL dlopen'd rather than linked, which is
+      # what lets one library run headless in an image with no display stack.
+      - name: Build libgodot
+        shell: bash
+        working-directory: engine
+        run: |
+          scons platform=${{ matrix.engine_platform }} target=template_release \
+            library_type=shared_library production=yes arch=${{ matrix.engine_arch }} \
+            use_sowrap=yes debug_symbols=no -j3
+          ls -la bin/
+
+      - name: Build iceoryx2
+        shell: bash
+        working-directory: iceoryx2
+        run: cargo build --release -p iceoryx2-ffi-c
+
+      # The bundle is dumped from an editor build and is platform independent,
+      # so it is downloaded rather than rebuilt on every runner.
+      - name: Fetch the GDExtension bundle
+        shell: bash
+        run: |
+          curl -sSL -o gdext.tar.gz \
+            https://github.com/V-Sekai-fire/entities-godot/releases/download/gdext-4.8.dev/gdextension-4.8.dev.tar.gz
+          mkdir -p connector/build
+          tar xzf gdext.tar.gz -C connector/build
+          cp "engine/${{ matrix.engine_lib }}" \
+             "connector/build/$([ "${{ runner.os }}" = "Windows" ] && echo libgodot.dll || ([ "${{ runner.os }}" = "macOS" ] && echo libgodot.dylib || echo libgodot.so))"
+
+      - name: Build libgodot_host
+        shell: bash
+        working-directory: connector/samples/elixir_sample
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target libgodot_host --config Release -j3
+
+      - name: Assemble the payload
+        shell: bash
+        env:
+          BURRITO_TARGET: ${{ matrix.target }}
+        run: |
+          mix deps.get
+          mix payload.fetch ${{ matrix.target }}
+          DIR=payload/${{ matrix.target }}
+          cp "engine/${{ matrix.engine_lib }}" "$DIR/${{ matrix.payload_lib }}"
+          cp connector/samples/elixir_sample/priv/${{ matrix.host_bin }} "$DIR/${{ matrix.host_bin }}"
+          find iceoryx2/target/release -name "${{ matrix.iox_lib }}" -exec cp {} "$DIR/" \;
+          ls -la "$DIR"
+
+      - name: Build the release
         shell: bash
         env:
           BURRITO_TARGET: ${{ matrix.target }}
           MIX_ENV: prod
+        run: mix release central_launcher --overwrite
+
+      # A binary that cannot report its own version did not build correctly,
+      # and on the two runners that can run what they built this is checkable.
+      - name: Smoke test
+        if: matrix.target != 'windows_amd64' || runner.os == 'Windows'
+        shell: bash
         run: |
-          mix deps.get
-          mix release central_launcher --overwrite
+          BIN=$(ls burrito_out/* | head -1)
+          chmod +x "$BIN" || true
+          "$BIN" version
+          "$BIN" install
 
       - uses: actions/upload-artifact@v4
         with:

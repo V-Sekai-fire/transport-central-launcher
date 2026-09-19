@@ -5,6 +5,55 @@
 # Each entry pins a version and a digest, so a build either produces the payload
 # this file describes or fails.
 %{
+  # FoundationDB publishes no Windows build, so there is no fdbserver or
+  # libfdb_c row here and CentralLauncher.Mode drops the child to match.
+  "windows_amd64" => [
+    %{
+      name: "versitygw.exe",
+      version: "1.8.0",
+      url:
+        "https://github.com/versity/versitygw/releases/download/v1.8.0/versitygw_v1.8.0_Windows_x86_64.zip",
+      extract: "versitygw_v1.8.0_Windows_x86_64/versitygw.exe",
+      sha256: "from-release-asset"
+    },
+    %{
+      name: "bao.exe",
+      version: "2.6.2",
+      url:
+        "https://github.com/openbao/openbao/releases/download/v2.6.2/openbao_2.6.2_windows_amd64.zip",
+      extract: "bao.exe",
+      sha256: "from-release-asset"
+    },
+    %{
+      name: "desync.exe",
+      version: "0.9.6",
+      url:
+        "https://github.com/folbricht/desync/releases/download/v0.9.6/desync_0.9.6_windows_amd64.tar.gz",
+      extract: "desync.exe",
+      sha256: "from-release-asset"
+    },
+    %{
+      name: "libgodot.dll",
+      version: "4.8.dev.bc391afc4",
+      url: "https://github.com/V-Sekai-fire/entities-godot",
+      extract: "bin/libgodot.windows.template_release.x86_64.dll",
+      sha256: "built-in-ci"
+    },
+    %{
+      name: "iceoryx2_ffi_c.dll",
+      version: "0.9.3",
+      url: "https://github.com/V-Sekai-fire/interactor-elixir-libgodot",
+      extract: "iceoryx2_ffi_c.dll",
+      sha256: "built-in-ci"
+    },
+    %{
+      name: "libgodot_host.exe",
+      version: "4.8.dev.bc391afc4",
+      url: "https://github.com/V-Sekai-fire/transport-elixir-libgodot-connector",
+      extract: "samples/libgodot_host/host.cpp",
+      sha256: "built-in-ci"
+    }
+  ],
   "linux_arm64" => [
     %{
       name: "versitygw",

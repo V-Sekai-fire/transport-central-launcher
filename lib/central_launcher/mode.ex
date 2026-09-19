@@ -9,6 +9,7 @@ defmodule CentralLauncher.Mode do
   """
 
   @standalone ~w(fdbserver bao versitygw libgodot_host)
+  @standalone_windows ~w(bao versitygw libgodot_host)
   @attached ~w(libgodot_host)
 
   @doc "`:standalone` unless a config file selects otherwise."
@@ -23,8 +24,18 @@ defmodule CentralLauncher.Mode do
   end
 
   @doc "The children this mode supervises, in start order."
-  def children(:standalone), do: @standalone
+  def children(:standalone), do: standalone()
   def children(:attached), do: @attached
+
+  # FoundationDB publishes no Windows build of any kind, so standalone there
+  # runs without a local cluster rather than staging a binary that cannot
+  # exist. Attached mode is unaffected: it reaches a cluster over the network.
+  defp standalone do
+    case :os.type() do
+      {:win32, _} -> @standalone_windows
+      _ -> @standalone
+    end
+  end
 
   defp decode(body) do
     case :json.decode(body) do
