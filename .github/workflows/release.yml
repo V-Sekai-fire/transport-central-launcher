@@ -9,6 +9,10 @@ on:
 # otp_win64 installer, and the other three are built by the erts workflow and
 # published on this repository, because OTP 29.1 is absent from
 # beam-machine-universal for all of them.
+env:
+  ENGINE_TAG: v2026.09.19.1621-main-fabric-0.2.4
+  SCCACHE_GHA_ENABLED: "false"
+
 jobs:
   build:
     name: ${{ matrix.target }}
@@ -27,6 +31,8 @@ jobs:
             payload_lib: libgodot
             host_bin: libgodot_host
             iox_lib: libiceoryx2_ffi_c.dylib
+            scons_cc: '"CC=sccache cc" "CXX=sccache c++"'
+            sccache_dir: ~/Library/Caches/Mozilla.sccache
           - target: linux_x86_64
             runs_on: ubuntu-22.04
             engine_platform: linuxbsd
@@ -38,6 +44,8 @@ jobs:
             payload_lib: libgodot
             host_bin: libgodot_host
             iox_lib: libiceoryx2_ffi_c.so
+            scons_cc: '"CC=sccache gcc" "CXX=sccache g++"'
+            sccache_dir: ~/.cache/sccache
           - target: linux_arm64
             runs_on: ubuntu-22.04-arm
             engine_platform: linuxbsd
@@ -49,6 +57,8 @@ jobs:
             payload_lib: libgodot
             host_bin: libgodot_host
             iox_lib: libiceoryx2_ffi_c.so
+            scons_cc: '"CC=sccache gcc" "CXX=sccache g++"'
+            sccache_dir: ~/.cache/sccache
           - target: windows_amd64
             runs_on: windows-2022
             engine_platform: windows
@@ -60,6 +70,8 @@ jobs:
             payload_lib: libgodot.dll
             host_bin: libgodot_host.exe
             iox_lib: iceoryx2_ffi_c.dll
+            scons_cc: ""
+            sccache_dir: $HOME/AppData/Local/Mozilla/sccache/cache
     runs-on: ${{ matrix.runs_on }}
     steps:
       - uses: actions/checkout@v4
@@ -96,13 +108,36 @@ jobs:
             libx11-dev libxcursor-dev libxinerama-dev libxi-dev libxrandr-dev \
             libwayland-dev libxkbcommon-dev libgl1-mesa-dev libudev-dev
 
+      # The engine is pinned to a tag, so its objects are identical from run to
+      # run: 13 to 40 minutes a job rebuilding what a cache already holds.
+      # actions/cache stores these with zstd.
+      - uses: mozilla-actions/sccache-action@v0.0.6
+
+      - name: Cache the compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ matrix.sccache_dir }}
+          key: sccache-${{ matrix.target }}-${{ env.ENGINE_TAG }}-${{ github.run_id }}
+          restore-keys: |
+            sccache-${{ matrix.target }}-${{ env.ENGINE_TAG }}-
+            sccache-${{ matrix.target }}-
+
+      - name: Cache the SCons object cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.scons-cache
+          key: scons-${{ matrix.target }}-${{ env.ENGINE_TAG }}-${{ github.run_id }}
+          restore-keys: |
+            scons-${{ matrix.target }}-${{ env.ENGINE_TAG }}-
+            scons-${{ matrix.target }}-
+
       - name: Check out the engine
         uses: actions/checkout@v4
         with:
           repository: V-Sekai-fire/entities-godot
           # The assembled fabric, not a feature branch: a branch is deleted
           # when its pull request merges and every job then fails at checkout.
-          ref: refs/tags/v2026.09.19.1621-main-fabric-0.2.4
+          ref: refs/tags/${{ env.ENGINE_TAG }}
           path: engine
 
       - name: Check out the connector
@@ -142,7 +177,9 @@ jobs:
         run: |
           scons platform=${{ matrix.engine_platform }} target=template_release \
             library_type=shared_library production=yes arch=${{ matrix.engine_arch }} \
-            debug_symbols=no ${{ matrix.engine_flags }} -j3
+            debug_symbols=no ${{ matrix.engine_flags }} -j3 \
+            cache_path="${{ github.workspace }}/.scons-cache" cache_limit=8 \
+            ${{ matrix.scons_cc }}
           ls -la bin/
           # Windows drops the lib prefix that Linux and macOS carry, so the
           # name is per target and worth checking where it is produced.
@@ -172,7 +209,8 @@ jobs:
         shell: bash
         working-directory: connector/samples/elixir_sample
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }}
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_flags }} \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
           cmake --build build --target libgodot_host --config Release -j3
 
       - name: Assemble the payload
