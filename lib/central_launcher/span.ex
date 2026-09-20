@@ -70,7 +70,10 @@ defmodule CentralLauncher.Span do
   end
 
   defp text({:string, chars}), do: IO.chardata_to_string(chars)
-  defp text({format, args}) when is_list(format), do: format |> :io_lib.format(args) |> to_string()
+
+  defp text({format, args}) when is_list(format),
+    do: format |> :io_lib.format(args) |> to_string()
+
   defp text({:report, report}), do: inspect(report)
   defp text(other), do: inspect(other)
 

@@ -79,8 +79,18 @@ defmodule CentralLauncher.Burrito.MacOSApp do
 
     System.cmd(
       "hdiutil",
-      ["create", "-quiet", "-volname", "Central Launcher", "-srcfolder", app,
-       "-ov", "-format", "ULFO", dmg],
+      [
+        "create",
+        "-quiet",
+        "-volname",
+        "Central Launcher",
+        "-srcfolder",
+        app,
+        "-ov",
+        "-format",
+        "ULFO",
+        dmg
+      ],
       stderr_to_stdout: true
     )
   end

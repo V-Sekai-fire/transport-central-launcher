@@ -125,7 +125,8 @@ defmodule CentralLauncher.SpanTest do
     %{path: path}
   end
 
-  defp lines(path), do: path |> File.read!() |> String.split("\n", trim: true) |> Enum.map(&:json.decode/1)
+  defp lines(path),
+    do: path |> File.read!() |> String.split("\n", trim: true) |> Enum.map(&:json.decode/1)
 
   test "a span opens and closes, carrying its duration", %{path: path} do
     assert :done = Span.span("work", fn -> :done end)
