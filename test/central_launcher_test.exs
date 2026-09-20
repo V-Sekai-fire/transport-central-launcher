@@ -32,10 +32,25 @@ defmodule CentralLauncherTest do
       assert String.ends_with?(path, "bao.hcl")
     end
 
-    test "fdbserver listens off FoundationDB's own default port" do
+    test "fdbserver listens clear of FoundationDB's own default port" do
       args = Runtime.args("fdbserver")
       assert "-p" in args
-      refute Enum.any?(args, &String.ends_with?(&1, ":4689"))
+      [_, endpoint | _] = Enum.drop_while(args, &(&1 != "-p"))
+      refute String.ends_with?(endpoint, ":4500")
+    end
+
+    test "the default-port check rejects a launcher that took 4500" do
+      clear? = &(not String.ends_with?(&1, ":4500"))
+      assert clear?.("127.0.0.1:4700")
+      refute clear?.("127.0.0.1:4500")
+    end
+
+    test "fdbserver is given its own data and log directories, not the desk's" do
+      args = Runtime.args("fdbserver")
+      [_, datadir | _] = Enum.drop_while(args, &(&1 != "-d"))
+      [_, logdir | _] = Enum.drop_while(args, &(&1 != "-L"))
+      assert String.starts_with?(datadir, Runtime.root())
+      assert String.starts_with?(logdir, Runtime.root())
     end
 
     test "the host is told where the engine is, by a path and not a bare name" do
@@ -67,8 +82,14 @@ defmodule CentralLauncherTest do
 
     test "versitygw is given root credentials, and nothing else is" do
       assert Runtime.env("versitygw") != []
-      assert Runtime.env("fdbserver") == []
       assert Runtime.env("bao") == []
+    end
+
+    test "fdbserver is pinned to our cluster file, not whatever the desk installed" do
+      [{~c"FDB_CLUSTER_FILE", path}] = Runtime.env("fdbserver")
+      path = to_string(path)
+      assert Path.type(path) == :absolute
+      assert String.starts_with?(path, Runtime.root())
     end
   end
 
