@@ -102,3 +102,96 @@ defmodule CentralLauncher.ServiceTest do
     assert body =~ "exit"
   end
 end
+
+defmodule CentralLauncher.BundleTest do
+  use ExUnit.Case, async: true
+
+  test "a path inside an app bundle is bundled, a bare binary is not" do
+    assert CentralLauncher.CLI.bundled?("/Applications/X.app/Contents/MacOS/central-launcher")
+    refute CentralLauncher.CLI.bundled?("/usr/local/bin/central-launcher")
+    refute CentralLauncher.CLI.bundled?(nil)
+  end
+end
+
+defmodule CentralLauncher.SpanTest do
+  use ExUnit.Case, async: false
+
+  alias CentralLauncher.Span
+
+  setup do
+    path = Path.join(System.tmp_dir!(), "spans-#{System.unique_integer([:positive])}.jsonl")
+    Span.install(path)
+    on_exit(fn -> File.rm(path) end)
+    %{path: path}
+  end
+
+  defp lines(path), do: path |> File.read!() |> String.split("\n", trim: true) |> Enum.map(&:json.decode/1)
+
+  test "a span opens and closes, carrying its duration", %{path: path} do
+    assert :done = Span.span("work", fn -> :done end)
+    [open, close] = lines(path)
+    assert open["name"] == "work" and open["at"] == "open"
+    assert close["at"] == "close" and close["outcome"] == "ok"
+    assert is_integer(close["us"])
+    assert open["span"] == close["span"]
+  end
+
+  test "a root span has parent -1, never a null", %{path: path} do
+    Span.span("root", fn -> :ok end)
+    [open | _] = lines(path)
+    assert open["parent"] == -1
+  end
+
+  test "a nested span names its parent", %{path: path} do
+    Span.span("outer", fn -> Span.span("inner", fn -> :ok end) end)
+    outer = lines(path) |> Enum.find(&(&1["name"] == "outer"))
+    inner = lines(path) |> Enum.find(&(&1["name"] == "inner"))
+    assert inner["parent"] == outer["span"]
+  end
+
+  test "an error result is recorded as an error outcome", %{path: path} do
+    Span.span("bad", fn -> {:error, :nope} end)
+    close = lines(path) |> Enum.find(&(&1["at"] == "close"))
+    assert close["outcome"] == "error"
+  end
+
+  test "the stack unwinds, so a sibling is not nested under its predecessor", %{path: path} do
+    Span.span("first", fn -> :ok end)
+    Span.span("second", fn -> :ok end)
+    second = lines(path) |> Enum.find(&(&1["name"] == "second"))
+    assert second["parent"] == -1
+  end
+end
+
+defmodule CentralLauncher.PayloadTest do
+  use ExUnit.Case, async: true
+
+  alias CentralLauncher.Payload
+
+  @macho <<0xCF, 0xFA, 0xED, 0xFE, 0, 0, 0, 0>>
+  @elf <<0x7F, "ELF", 2, 1, 1, 0>>
+  @pe <<"MZ", 0, 0, 0, 0, 0, 0>>
+
+  test "each magic names its operating system" do
+    assert Payload.os_of(@macho) == :darwin
+    assert Payload.os_of(@elf) == :linux
+    assert Payload.os_of(@pe) == :windows
+    assert Payload.os_of(<<"just data">>) == :unknown
+  end
+
+  test "the right binary for the target passes" do
+    assert Payload.check(@macho, "macos_arm64") == :ok
+    assert Payload.check(@elf, "linux_arm64") == :ok
+    assert Payload.check(@pe, "windows_amd64") == :ok
+  end
+
+  # The control: this is the staging that shipped a Linux host to macOS.
+  test "a linux binary staged for macos is a mismatch" do
+    assert Payload.check(@elf, "macos_arm64") == {:mismatch, :linux, :darwin}
+    assert Payload.check(@macho, "linux_x86_64") == {:mismatch, :darwin, :linux}
+  end
+
+  test "a data file is not a mismatch" do
+    assert Payload.check(<<"cluster:file">>, "macos_arm64") == :ok
+  end
+end

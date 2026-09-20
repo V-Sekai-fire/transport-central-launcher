@@ -2,8 +2,15 @@ defmodule CentralLauncher.CLI do
   @moduledoc "install, launch and update — the three verbs the launcher exists for."
 
   def main(argv \\ []) do
-    argv |> run() |> report()
+    argv = Enum.reject(argv, &psn?/1)
+    CentralLauncher.Span.install()
+
+    CentralLauncher.Span.span("main", %{"argv" => Enum.join(argv, " ")}, fn -> run(argv) end)
+    |> report()
   end
+
+  # LaunchServices appends a process serial number when it opens a bundle.
+  defp psn?(arg), do: String.starts_with?(arg, "-psn_")
 
   defp run(["install" | _]), do: install()
   defp run(["launch" | _]), do: launch()
@@ -19,7 +26,13 @@ defmodule CentralLauncher.CLI do
   defp run(["service", "status" | _]), do: CentralLauncher.Service.status()
 
   defp run(["version" | _]), do: {:ok, Application.spec(:central_launcher, :vsn)}
+  # Opening a bundle passes no arguments, and usage would go to no stdout.
+  defp run([]), do: if(bundled?(), do: launch(), else: {:ok, usage()})
   defp run(_argv), do: {:ok, usage()}
+
+  def bundled?(path \\ System.get_env("__BURRITO_BIN_PATH")) do
+    is_binary(path) and String.contains?(path, ".app/Contents/MacOS/")
+  end
 
   # Burrito self-extracts before this runs, so install is a check that every
   # staged child is present rather than an unpacking step of its own.
@@ -39,15 +52,18 @@ defmodule CentralLauncher.CLI do
 
   defp launch do
     mode = CentralLauncher.Mode.current()
+    CentralLauncher.Span.event("mode", %{"mode" => to_string(mode)})
 
     started =
       Enum.reduce_while(CentralLauncher.Mode.children(mode), [], fn name, acc ->
         spec = child_spec(name)
 
-        case Supervisor.start_child(CentralLauncher.Supervisor, spec) do
-          {:ok, pid} -> {:cont, [{name, pid} | acc]}
-          {:error, reason} -> {:halt, {:error, {name, reason}}}
-        end
+        CentralLauncher.Span.span("start_child", %{"child" => name}, fn ->
+          case Supervisor.start_child(CentralLauncher.Supervisor, spec) do
+            {:ok, pid} -> {:cont, [{name, pid} | acc]}
+            {:error, reason} -> {:halt, {:error, {name, reason}}}
+          end
+        end)
       end)
 
     case started do
@@ -125,6 +141,7 @@ defmodule CentralLauncher.CLI do
   # Children already started before the failure are torn down first: halting
   # straight away leaves them running with no launcher to supervise them.
   defp report({:error, reason}) do
+    CentralLauncher.Span.event("failed", %{"reason" => inspect(reason)})
     IO.puts(:stderr, "central-launcher: #{inspect(reason)}")
 
     case Process.whereis(CentralLauncher.Supervisor) do

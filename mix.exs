@@ -56,7 +56,8 @@ defmodule CentralLauncher.MixProject do
             linux_arm64: [os: :linux, cpu: :aarch64, custom_erts: @erts_linux_arm],
             windows_amd64: [os: :windows, cpu: :x86_64, custom_erts: @erts_windows]
           ],
-          skip_nifs: true
+          skip_nifs: true,
+          extra_steps: [build: [post: [CentralLauncher.Burrito.MacOSApp]]]
         ]
       ]
     ]
@@ -70,7 +71,9 @@ defmodule CentralLauncher.MixProject do
     File.mkdir_p!(priv)
 
     for %{name: name} <- payload() do
-      File.cp!(Path.join(payload_dir(), name), Path.join(priv, name))
+      source = Path.join(payload_dir(), name)
+      verify!(source, name)
+      File.cp!(source, Path.join(priv, name))
     end
 
     release
@@ -83,6 +86,18 @@ defmodule CentralLauncher.MixProject do
   end
 
   defp payload_dir, do: Path.join("payload", target())
+
+  defp verify!(path, name) do
+    head = File.open!(path, [:read, :binary], &IO.binread(&1, 8))
+
+    case CentralLauncher.Payload.check(head, target()) do
+      :ok ->
+        :ok
+
+      {:mismatch, found, want} ->
+        Mix.raise("payload #{name} is a #{found} binary, but #{target()} wants #{want}")
+    end
+  end
 
   defp target, do: System.get_env("BURRITO_TARGET") || "macos_arm64"
 end
