@@ -164,7 +164,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: V-Sekai-fire/transport-elixir-libgodot-connector
-          ref: main/main
+          # A commit, not a branch: a tag whose inputs float cannot be rebuilt
+          # from itself, and the engine and iceoryx2 above are already pinned.
+          ref: 2747e6fe378fe1abc1d002912a9b19c21c1b23b9
           path: connector
 
       - name: Check out iceoryx2
