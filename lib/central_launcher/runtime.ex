@@ -7,8 +7,8 @@ defmodule CentralLauncher.Runtime do
   supervisor stays one mechanism.
   """
 
-  # 4689 is FoundationDB's own default, so a desk with a system FDB install
-  # already holds it. Standalone takes the next port rather than the default.
+  # 4500 is FoundationDB's own default, so a desk with a system FDB install
+  # already holds it. Standalone takes a port well clear of it.
   @fdb_port 4700
 
   @doc "Root of the launcher's own state, created on demand."
@@ -56,6 +56,8 @@ defmodule CentralLauncher.Runtime do
   def env("libgodot_host") do
     [{~c"WEFT_ICEORYX2_PATH", to_charlist(Path.join(priv(), iceoryx2()))}]
   end
+
+  def env("fdbserver"), do: [{~c"FDB_CLUSTER_FILE", to_charlist(cluster_file())}]
 
   def env(_name), do: []
 
