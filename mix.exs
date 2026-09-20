@@ -33,6 +33,8 @@ defmodule CentralLauncher.MixProject do
 
   defp deps do
     [
+      {:opentelemetry_api, "~> 1.4"},
+      {:opentelemetry, "~> 1.5"},
       {:burrito,
        github: "V-Sekai-fire/service-burrito",
        branch: "head/musl-for-custom-erts",
