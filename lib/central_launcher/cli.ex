@@ -127,6 +127,7 @@ defmodule CentralLauncher.CLI do
   # stops `install` being looked up as a filename.
   defp report({:ok, message}) do
     IO.puts(to_string(message))
+    CentralLauncher.Span.flush()
     System.halt(0)
   end
 
@@ -142,6 +143,7 @@ defmodule CentralLauncher.CLI do
   # straight away leaves them running with no launcher to supervise them.
   defp report({:error, reason}) do
     CentralLauncher.Span.event("failed", %{"reason" => inspect(reason)})
+    CentralLauncher.Span.flush()
     IO.puts(:stderr, "central-launcher: #{inspect(reason)}")
 
     case Process.whereis(CentralLauncher.Supervisor) do
