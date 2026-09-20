@@ -5,6 +5,9 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 # Every ERTS this matrix needs is reachable: Windows uses erlang/otp's own
 # otp_win64 installer, and the other three are built by the erts workflow and
 # published on this repository, because OTP 29.1 is absent from
@@ -261,7 +264,8 @@ jobs:
         if: matrix.target != 'windows_amd64' || runner.os == 'Windows'
         shell: bash
         run: |
-          BIN=$(ls burrito_out/* | head -1)
+          BIN=burrito_out/central_launcher_${{ matrix.target }}
+          [ "${{ matrix.target }}" = "windows_amd64" ] && BIN="$BIN.exe"
           chmod +x "$BIN" || true
           "$BIN" version
           "$BIN" install
@@ -272,3 +276,41 @@ jobs:
           path: |
             burrito_out/central_launcher_*
             burrito_out/*.dmg
+
+  # A tag that builds but publishes nothing is not a release: v0.2.0-dev.1 went
+  # green on all four targets and left the binaries on the run, behind a login.
+  publish:
+    name: publish
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: staged
+          pattern: central-launcher-*
+          merge-multiple: true
+
+      - name: Checksum every asset
+        run: |
+          cd staged
+          ls -la
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" staged/* \
+            --repo "${{ github.repository }}" \
+            --title "${{ github.ref_name }}" \
+            --notes "One self-contained binary per platform carrying the Elixir application, libgodot, the FoundationDB client, OpenBao and versitygw.
+
+          Verbs: \`install\`, \`launch\`, \`update\`, and \`service install|uninstall|status\`, which registers the launcher with the user's own session manager without asking for administrator.
+
+          macOS ships as \`Central Launcher.app\` inside \`central-launcher-macos_arm64.dmg\`. It is unsigned, and Gatekeeper blocks unsigned bundles, so clear the quarantine attribute after downloading:
+
+              xattr -d com.apple.quarantine '/Applications/Central Launcher.app'
+
+          The engine, iceoryx2 and the connector are pinned, so this tag rebuilds to the same artifacts. Checksums are in SHA256SUMS."
