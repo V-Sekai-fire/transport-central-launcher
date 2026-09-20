@@ -269,4 +269,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: central-launcher-${{ matrix.target }}
-          path: burrito_out/*
+          path: |
+            burrito_out/central_launcher_*
+            burrito_out/*.dmg
