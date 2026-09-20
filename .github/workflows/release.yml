@@ -260,6 +260,69 @@ jobs:
 
       # A binary that cannot report its own version did not build correctly,
       # and on the two runners that can run what they built this is checkable.
+      # Gatekeeper refuses an unsigned bundle on a machine that did not build
+      # it, and neither documented escape works: `xattr -d` is refused by App
+      # Management, and quarantine translocates the bundle to a read-only path
+      # where it will not start. Signing and notarizing is the only fix.
+      - name: Sign and notarize the app
+        if: matrix.target == 'macos_arm64' && env.MACOS_CERT_P12 != ''
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          AC_API_KEY_P8: ${{ secrets.AC_API_KEY_P8 }}
+          AC_API_KEY_ID: ${{ secrets.AC_API_KEY_ID }}
+          AC_API_ISSUER_ID: ${{ secrets.AC_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          APP="burrito_out/Central Launcher.app"
+          DMG="burrito_out/central-launcher-macos_arm64.dmg"
+
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(uuidgen)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          echo "$MACOS_CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "$MACOS_CERT_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d '"')
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+          # The hardened runtime is required for notarization, and the staged
+          # children plus the extracted ERTS are unsigned code this process
+          # loads, which is what the entitlements permit.
+          codesign --force --timestamp --options runtime \
+            --entitlements build/entitlements.plist \
+            --sign "$MACOS_SIGN_IDENTITY" --deep "$APP"
+          codesign --verify --strict --verbose=2 "$APP"
+
+          # The image is rebuilt because signing changed the bundle inside it.
+          rm -f "$DMG"
+          hdiutil create -quiet -volname "Central Launcher" -srcfolder "$APP" \
+            -ov -format ULFO "$DMG"
+          codesign --force --timestamp --sign "$MACOS_SIGN_IDENTITY" "$DMG"
+
+          echo "$AC_API_KEY_P8" | base64 --decode > "$RUNNER_TEMP/ac.p8"
+          xcrun notarytool submit "$DMG" --wait \
+            --key "$RUNNER_TEMP/ac.p8" --key-id "$AC_API_KEY_ID" --issuer "$AC_API_ISSUER_ID"
+          rm -f "$RUNNER_TEMP/ac.p8"
+
+          xcrun stapler staple "$DMG"
+          xcrun stapler validate "$DMG"
+          spctl -a -vv -t install "$DMG"
+          echo "signed, notarized and stapled"
+
+      # A skip that says nothing reads exactly like a pass, so it says so.
+      - name: Say the build is unsigned
+        if: matrix.target == 'macos_arm64' && env.MACOS_CERT_P12 == ''
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+        run: |
+          echo "::warning title=Unsigned macOS build::MACOS_CERT_P12 is not set, so the app bundle is ad-hoc signed only. Gatekeeper will refuse it on any machine that did not build it."
+
       - name: Smoke test
         if: matrix.target != 'windows_amd64' || runner.os == 'Windows'
         shell: bash
