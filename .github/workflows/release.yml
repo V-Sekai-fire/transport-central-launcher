@@ -175,7 +175,7 @@ jobs:
       - name: Check out iceoryx2
         uses: actions/checkout@v4
         with:
-          repository: eclipse-iceoryx/iceoryx2
+          repository: V-Sekai-fire/iceoryx2
           ref: v0.9.3
           path: iceoryx2
 
