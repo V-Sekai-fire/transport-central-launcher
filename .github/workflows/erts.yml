@@ -10,6 +10,10 @@ on:
         description: OTP version to build
         default: "29.1"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     name: erts ${{ matrix.label }}
