@@ -16,6 +16,10 @@ env:
   ENGINE_TAG: v2026.09.19.1621-main-fabric-0.2.4
   SCCACHE_GHA_ENABLED: "false"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     name: ${{ matrix.target }}
