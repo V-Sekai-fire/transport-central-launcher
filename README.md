@@ -13,7 +13,7 @@ mix deps.get
 mix test
 ```
 
-The release workflow builds each platform's binary natively on a tag. The binary's verbs are `install`, `launch` and `update`.
+The release workflow builds each platform's binary natively on a tag. Run with no arguments, the binary prints its verbs.
 
 ## Licence
 
